@@ -1,0 +1,92 @@
+<?php
+/**
+ * Hyvä Themes - https://hyva.io
+ * Copyright © Hyvä Themes 2022-present. All rights reserved.
+ * This product is licensed per Magento install
+ * See https://hyva.io/license
+ */
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Paypal\Block\PayLater\Banner;
+use Magento\Checkout\Block\Cart;
+
+/** @var Escaper $escaper */
+/** @var Banner $block */
+/** @var Cart $cartBlock */
+
+$widgetData = json_decode($block->getJsLayout(), true);
+$widgetConfigJson = json_encode($widgetData['components']['payLater']['config']['attributes']);
+$widgetConfigsdkUrl = json_encode($widgetData['components']['payLater']['config']['sdkUrl']);
+
+$uniqueId   = '_' . uniqid();
+?>
+<?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
+<?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
+    <div x-data="paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>()" 
+         x-ref="ppMessage" 
+         class="px-6 md:px-0 my-3 min-h-[20px] order-last"
+         data-pp-message></div>
+    <script>
+        function paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
+
+            return {
+                config: <?= /** @noEscape */ $widgetConfigJson ?> || {},
+                ppMessage: null,
+                initializePayLater() {
+                    return new Promise((resolve, reject) => {
+                        const scriptId = 'paypal-script';
+
+                        let paypalScript = document.getElementById(scriptId);
+                        if (paypalScript) {
+                            return resolve(window.paypal);
+                        }
+
+                        const script = document.createElement('script');
+                        script.src = <?= /** @noEscape */ $widgetConfigsdkUrl ?>;
+                        script.id = scriptId;
+
+                        script.addEventListener('load', function() {
+                            resolve(window.paypal);
+                        }, false);
+
+                        script.addEventListener('error', function() {
+                            reject(new Error('PayPal SDK could not be loaded'));
+                        }, false);
+
+                        document.body.appendChild(script);
+                    })
+                },
+                initializeButtons() {
+                    this.initializePayLater().then(() => {
+                        this.ppMessage = paypal.Messages({
+                            amount: 500,
+                            placement: (this.config['data-pp-placement'] != null) ? this.config['data-pp-placement'] : 'product',
+                            style: {
+                                'layout': (this.config['data-pp-style-layout'] != null) ? this.config['data-pp-style-layout'] : 'text',
+                                'logo': {
+                                    'type': (this.config['data-pp-style-logo-type'] != null) ? this.config['data-pp-style-logo-type'] : 'primary',
+                                    'position': (this.config['data-pp-style-logo-position'] != null) ? this.config['data-pp-style-logo-position'] : 'left',
+                                },
+                                'text': {
+                                    'color': (this.config['data-pp-style-text-color'] != null) ? this.config['data-pp-style-text-color'] : 'black',
+                                    'size': (this.config['data-pp-style-text-size'] != null) ? this.config['data-pp-style-text-size'] : '12',
+                                },
+                                'color': (this.config['data-pp-style-color'] != null) ? this.config['data-pp-style-color'] : 'blue',
+                                'ratio': (this.config['data-pp-style-ratio'] != null) ? this.config['data-pp-style-ratio'] : '1x1',
+                            },
+                        }).render(this.$refs.ppMessage);
+                    }).catch(error => {
+                        console.error(error.message);
+                    });
+                },
+                init() {
+                    window.addEventListener('init-external-scripts', () => {
+                        this.initializeButtons()
+                    }, { once: true, passive: true });
+                }
+            };
+        }
+    </script>
+<?php endif; ?>
