@@ -25,15 +25,21 @@ $uniqueId   = '_' . uniqid();
 <?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
 <?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
     <div x-data="paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>()" 
-         x-ref="ppMessage" 
+         x-ref="ppMessage"
+         @private-content-loaded.window="getSectionData($event.detail.data)"
          class="px-6 md:px-0 my-3 min-h-[20px] order-last"
          data-pp-message></div>
     <script>
         function paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
-
             return {
-                config: <?= /** @noEscape */ $widgetConfigJson ?> || {},
+                config: <?= /** @noEscape */ $widgetConfigJson ?>.config || {},
                 ppMessage: null,
+                cartSection: false,
+                getSectionData(sectionData) {
+                    if (sectionData.cart) {
+                        this.cartSection = sectionData.cart;
+                    }
+                },
                 initializePayLater() {
                     return new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
@@ -61,7 +67,7 @@ $uniqueId   = '_' . uniqid();
                 initializeButtons() {
                     this.initializePayLater().then(() => {
                         this.ppMessage = paypal.Messages({
-                            amount: 500,
+                            amount: this.cartSection.subtotalAmount,
                             placement: (this.config['data-pp-placement'] != null) ? this.config['data-pp-placement'] : 'product',
                             style: {
                                 'layout': (this.config['data-pp-style-layout'] != null) ? this.config['data-pp-style-layout'] : 'text',
