@@ -52,6 +52,7 @@ $uniqueId   = '_' . uniqid();
                         const script = document.createElement('script');
                         script.src = <?= /** @noEscape */ $widgetConfigsdkUrl ?>;
                         script.id = scriptId;
+                        script.setAttribute('data-partner-attribution-id', 'Magento_2_Community');
 
                         script.addEventListener('load', function() {
                             resolve(window.paypal);
@@ -66,7 +67,10 @@ $uniqueId   = '_' . uniqid();
                 },
                 initializeButtons() {
                     this.initializePayLater().then(() => {
-                        this.ppMessage = paypal.Messages({
+                        
+                        const paypal = window.paypal;
+                        
+                        paypal.Messages({
                             amount: this.cartSection.subtotalAmount,
                             placement: (this.config['data-pp-placement'] != null) ? this.config['data-pp-placement'] : 'product',
                             style: {
