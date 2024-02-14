@@ -142,9 +142,10 @@ $uniqueId   = '_' . uniqid();
                             paypal.actions = this.actions;
                         },
                         onCancel(data, actions) {
-                            // reurn to cart                            
+                            window.location.href = clientConfig.onCancelUrl;
                         },
                         onError(err) {
+                            //error massage
                         }
                     }).render(this.$refs.paypalInContextProduct);
                 }).catch(error => {
