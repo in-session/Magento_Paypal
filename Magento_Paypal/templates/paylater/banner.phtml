@@ -32,17 +32,41 @@ $uniqueId = '_' . uniqid();
     <script>
         function paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
             return {
+                
+                /**
+                 * Configuration object derived from server-side JSON.
+                 * @type {Object}
+                 */
                 config: <?= /** @noEscape */ $widgetConfigJson ?>.config || {},
+                
+                /**
+                 * Shopping cart section data.
+                 * @type {Object|boolean}
+                 */
                 cartSection: false,
+                    
+                /**
+                 * Handles the event when dynamic content related to the cart is loaded.
+                 * Updates the cartSection data based on the provided sectionData.
+                 * 
+                 * @param {Object} sectionData Data about the cart section.
+                 */
                 getSectionData(sectionData) {
                     if (sectionData.cart) {
                         this.cartSection = sectionData.cart;
                     }
                 },
+                    
+                /**
+                 * Initializes the PayPal SDK by dynamically injecting the PayPal script into the page.
+                 * Resolves with the PayPal object once the SDK is loaded, or rejects the promise on error.
+                 * 
+                 * @returns {Promise<Object>} A promise that resolves with the PayPal object.
+                 */
                 initializePayLater() {
                     return new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
-                        const sdkUrl = this.config.sdkUrl;
+                        const config = this.config;
 
                         let paypalScript = document.getElementById(scriptId);
                         if (paypalScript) {
@@ -50,9 +74,9 @@ $uniqueId = '_' . uniqid();
                         }
 
                         const script = document.createElement('script');
-                        script.src = sdkUrl;
+                        script.src = config.sdkUrl;
                         script.id = scriptId;
-                        script.setAttribute('data-partner-attribution-id', this.config.dataAttributes['data-partner-attribution-id']);
+                        script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
 
                         script.addEventListener('load', function() {
                             resolve(window.paypal);
@@ -65,6 +89,11 @@ $uniqueId = '_' . uniqid();
                         document.body.appendChild(script);
                     });
                 },
+                    
+                /**
+                 * Initializes and renders the PayPal buttons and messages based on the current cart section.
+                 * Utilizes the PayPal SDK loaded by initializePayLater.
+                 */
                 initializeButtons() {
                     this.initializePayLater().then(() => {
                         
@@ -93,6 +122,10 @@ $uniqueId = '_' . uniqid();
                         console.error(error.message);
                     });
                 },
+                    
+                /**
+                 * Initialization method that sets up event listeners for the module.
+                 */
                 init() {
                     window.addEventListener('init-external-scripts', () => {
                         this.initializeButtons()
