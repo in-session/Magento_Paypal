@@ -77,22 +77,25 @@ $uniqueId   = '_' . uniqid();
                     const cartSection = this.cartSection;
                     const triggerAddToCartClick = () => {
                         return new Promise((resolve, reject) => {
+                            
+                            //check add to cart
                             const addToCartButton = document.getElementById('product-addtocart-button');
-
                             if (addToCartButton) {
-                                addToCartButton.click();
+                                
+                                //POST request ist more better
+                                //addToCartButton.click();
                                 
                                 //reload cart data
-                                console.error('reload cart data');
+                                alert('reload cart data');
                                 
                                 //and then
-                                this.triggerAction = true;
+                                //this.triggerAction = true;
                                 
                                 //after reload
                                 resolve();
                             } else {
-                                console.error('Add to Cart button not found!');
-                                reject(new Error('Add to Cart button not found'));
+                                //console.error('Add to Cart button not found!');
+                                //reject(new Error('Add to Cart button not found'));
                             }
                         });
                     };                    
@@ -104,13 +107,14 @@ $uniqueId   = '_' . uniqid();
                             tagline: false //Set the style.layout to horizontal for taglines.
                         },                        
                         onInit: (data, actions) => {
+                            this.actions = actions || this.actions;
                             actions.disable();
                         },
                         onClick: async (data, actions) => {
                             try {
-                                await triggerAddToCartClick();
-                                console.error('make action after add cart');
-                                paypal.actions = this.actions; 
+                                await triggerAddToCartClick();    
+                                paypal.actions = this.actions;                         
+                                alert('make action after add cart');
                             } catch (error) {
                                 console.error(error);
                             }
@@ -122,18 +126,17 @@ $uniqueId   = '_' . uniqid();
                                 "&button=" + clientConfig.button;
 
                             return window.fetch(clientConfig.getTokenUrl, {
-                                    "headers": {
-                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                    },
-                                    "body": params,
-                                    "method": "POST",
-                                    "mode": "cors",
-                                    "credentials": "include"
-                                })
-                                .then(result => result.json())
-                                .then(data => data.token)
-                                .catch((error) => console.log(error));
-
+                                "headers": {
+                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                },
+                                "body": params,
+                                "method": "POST",
+                                "mode": "cors",
+                                "credentials": "include"
+                            })
+                            .then(result => result.json())
+                            .then(data => data.token)
+                            .catch((error) => console.log(error));
                         },
                         
                         onApprove(data, actions) {
@@ -144,34 +147,34 @@ $uniqueId   = '_' . uniqid();
                                 "&form_key=" + (getCookie('form_key') || '');
 
                             return window.fetch(clientConfig.onAuthorizeUrl, {
-                                    "headers": {
-                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                    },
-                                    "body": params,
-                                    "method": "POST",
-                                    "mode": "cors",
-                                    "credentials": "include"
-                                })
-                                .then(data => {
-                                    return data.json()
-                                }).then(response => {
-                                    if (response.success) {
-                                        return actions.redirect(response.redirectUrl);
-                                    }
+                                "headers": {
+                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                },
+                                "body": params,
+                                "method": "POST",
+                                "mode": "cors",
+                                "credentials": "include"
+                            })
+                            .then(data => {
+                                return data.json()
+                            }).then(response => {
+                                if (response.success) {
+                                    return actions.redirect(response.redirectUrl);
+                                }
 
-                                    throw new Error(response['error_message']);
-                                })
-                                .catch((error) => console.log(error)).finally(() => {
-                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
-                                    window.dispatchEvent(reloadCustomerDataEvent);
-                                });
+                                throw new Error(response['error_message']);
+                            })
+                            .catch((error) => console.log(error)).finally(() => {
+                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                window.dispatchEvent(reloadCustomerDataEvent);
+                            });
                         },
                         
                         onCancel(data, actions) {
                             window.location.href = clientConfig.onCancelUrl;
                         },
                         onError(err) {
-                            //error massage
+                            console.error('Unfortunately, an error occurred during the enquiry');
                         }
                     }).render(this.$refs.paypalInContextProduct);
                 }).catch(error => {
@@ -185,7 +188,7 @@ $uniqueId   = '_' . uniqid();
             init() {
                 window.addEventListener('init-external-scripts', () => {
                     this.initializeButtons()
-                }, { once: true, passive: true });
+                }, { once: true });
             }
         }
     }
