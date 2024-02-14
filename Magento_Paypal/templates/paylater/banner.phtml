@@ -17,11 +17,11 @@ use Magento\Checkout\Block\Cart;
 /** @var Cart $cartBlock */
 
 $widgetData = json_decode($block->getJsLayout(), true);
-$widgetConfigJson = json_encode($widgetData['components']['payLater']['config']['attributes']);
-$widgetConfigsdkUrl = json_encode($widgetData['components']['payLater']['config']['sdkUrl']);
+$widgetConfigJson = json_encode($widgetData['components']['payLater']['config']);
 
-$uniqueId   = '_' . uniqid();
+$uniqueId = '_' . uniqid();
 ?>
+
 <?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
 <?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
     <div x-data="paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>()" 
@@ -42,6 +42,7 @@ $uniqueId   = '_' . uniqid();
                 initializePayLater() {
                     return new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
+                        const sdkUrl = this.config.sdkUrl;
 
                         let paypalScript = document.getElementById(scriptId);
                         if (paypalScript) {
@@ -49,9 +50,9 @@ $uniqueId   = '_' . uniqid();
                         }
 
                         const script = document.createElement('script');
-                        script.src = <?= /** @noEscape */ $widgetConfigsdkUrl ?>;
+                        script.src = sdkUrl;
                         script.id = scriptId;
-                        script.setAttribute('data-partner-attribution-id', 'Magento_2_Community');
+                        script.setAttribute('data-partner-attribution-id', this.config.dataAttributes['data-partner-attribution-id']);
 
                         script.addEventListener('load', function() {
                             resolve(window.paypal);
@@ -62,28 +63,30 @@ $uniqueId   = '_' . uniqid();
                         }, false);
 
                         document.body.appendChild(script);
-                    })
+                    });
                 },
                 initializeButtons() {
                     this.initializePayLater().then(() => {
                         
                         const paypal = window.paypal;
+                        const attributes = this.config.attributes;
+                        const cartSection = this.cartSection;
                         
                         paypal.Messages({
-                            amount: this.cartSection.subtotalAmount,
-                            placement: (this.config['data-pp-placement'] != null) ? this.config['data-pp-placement'] : 'product',
+                            amount: cartSection.subtotalAmount,
+                            placement: attributes['data-pp-placement'] || 'product',
                             style: {
-                                'layout': (this.config['data-pp-style-layout'] != null) ? this.config['data-pp-style-layout'] : 'text',
+                                'layout': attributes['data-pp-style-layout'] || 'text',
                                 'logo': {
-                                    'type': (this.config['data-pp-style-logo-type'] != null) ? this.config['data-pp-style-logo-type'] : 'primary',
-                                    'position': (this.config['data-pp-style-logo-position'] != null) ? this.config['data-pp-style-logo-position'] : 'left',
+                                    'type': attributes['data-pp-style-logo-type'] || 'primary',
+                                    'position': attributes['data-pp-style-logo-position'] || 'left',
                                 },
                                 'text': {
-                                    'color': (this.config['data-pp-style-text-color'] != null) ? this.config['data-pp-style-text-color'] : 'black',
-                                    'size': (this.config['data-pp-style-text-size'] != null) ? this.config['data-pp-style-text-size'] : '12',
+                                    'color': attributes['data-pp-style-text-color'] || 'black',
+                                    'size': attributes['data-pp-style-text-size'] || '12',
                                 },
-                                'color': (this.config['data-pp-style-color'] != null) ? this.config['data-pp-style-color'] : 'blue',
-                                'ratio': (this.config['data-pp-style-ratio'] != null) ? this.config['data-pp-style-ratio'] : '1x1',
+                                'color': attributes['data-pp-style-color'] || 'blue', 
+                                'ratio': attributes['data-pp-style-ratio'] || '1x1',
                             },
                         }).render(this.$refs.ppMessage);
                     }).catch(error => {
