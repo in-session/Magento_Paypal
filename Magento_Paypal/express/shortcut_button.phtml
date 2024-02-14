@@ -34,6 +34,7 @@ $uniqueId   = '_' . uniqid();
             customerSection: {},
             cartSection: false,
             actions: {},
+            triggerAction: false,
             getSectionData(sectionData) {
                 if (sectionData.cart) {
                     this.cartSection = sectionData.cart;
@@ -52,7 +53,8 @@ $uniqueId   = '_' . uniqid();
                     const script = document.createElement('script');
                     script.src = clientConfig.sdkUrl;
                     script.id = scriptId;
-                    script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
+                    //todo
+                    //script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
 
                     script.addEventListener('load', function() {
                         resolve(window.paypal);
@@ -73,20 +75,46 @@ $uniqueId   = '_' . uniqid();
                     const getCookie = this.getCookie;
                     const customerSection = this.customerSection;
                     const cartSection = this.cartSection;
+                    const triggerAddToCartClick = () => {
+                        return new Promise((resolve, reject) => {
+                            const addToCartButton = document.getElementById('product-addtocart-button');
 
+                            if (addToCartButton) {
+                                addToCartButton.click();
+                                
+                                //reload cart data
+                                console.error('reload cart data');
+                                
+                                //and then
+                                this.triggerAction = true;
+                                
+                                //after reload
+                                resolve();
+                            } else {
+                                console.error('Add to Cart button not found!');
+                                reject(new Error('Add to Cart button not found'));
+                            }
+                        });
+                    };                    
                     paypal.Buttons({
-
                         style: {
                             ...clientConfig.styles, 
                             height: 42, //set the style.height option to a value from 25 to 55.
-                            disableMaxWidth: false, //The button has a default maximum width of 750px, but you can make the button larger:
+                            disableMaxWidth: false, //The button has a default maximum width of 750px, but you can make the button larger with tru and set container size
                             tagline: false //Set the style.layout to horizontal for taglines.
+                        },                        
+                        onInit: (data, actions) => {
+                            actions.disable();
                         },
-
-                        onInit(data, actions) {
-                            this.actions = actions || this.actions;
-                        },
-                        
+                        onClick: async (data, actions) => {
+                            try {
+                                await triggerAddToCartClick();
+                                console.error('make action after add cart');
+                                paypal.actions = this.actions; 
+                            } catch (error) {
+                                console.error(error);
+                            }
+                        },   
                         createOrder() {
                             const params = "quote_id=" + cartSection.cartId +
                                 "&customer_id=" + (clientConfig.customerId ? clientConfig.customerId : '' ) +
@@ -138,9 +166,7 @@ $uniqueId   = '_' . uniqid();
                                     window.dispatchEvent(reloadCustomerDataEvent);
                                 });
                         },
-                        onClick() {
-                            paypal.actions = this.actions;
-                        },
+                        
                         onCancel(data, actions) {
                             window.location.href = clientConfig.onCancelUrl;
                         },
