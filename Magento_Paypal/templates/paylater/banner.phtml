@@ -33,12 +33,14 @@ $uniqueId   = '_' . uniqid();
         function paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
             return {
                 config: <?= /** @noEscape */ $widgetConfigJson ?>.config || {},
-                ppMessage: null,
                 cartSection: false,
                 getSectionData(sectionData) {
                     if (sectionData.cart) {
                         this.cartSection = sectionData.cart;
                     }
+                    window.addEventListener('init-external-scripts', () => {
+                        this.initializeButtons()
+                    }, { once: true, passive: true });
                 },
                 initializePayLater() {
                     return new Promise((resolve, reject) => {
@@ -90,11 +92,6 @@ $uniqueId   = '_' . uniqid();
                     }).catch(error => {
                         console.error(error.message);
                     });
-                },
-                init() {
-                    window.addEventListener('init-external-scripts', () => {
-                        this.initializeButtons()
-                    }, { once: true, passive: true });
                 }
             };
         }
