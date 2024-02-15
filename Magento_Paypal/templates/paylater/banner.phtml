@@ -24,9 +24,9 @@ $uniqueId = '_' . uniqid();
 
 <?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
 <?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
-    <div x-intersect="checkAndInitializeButtons()"
+    <div x-intersect.once="checkAndInitializeButtons()"
          x-data="paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>()" 
-         @private-content-loaded.window="getSectionData($event.detail.data)"
+         @private-content-loaded.window="getData($event.detail.data)"
          class="px-6 md:px-0 my-3 min-h-[20px] order-last">
         <div x-ref="ppMessage"
              class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container"
@@ -41,7 +41,7 @@ $uniqueId = '_' . uniqid();
                  * Configuration object derived from server-side JSON.
                  * @type {Object}
                  */
-                config: <?= /** @noEscape */ $widgetConfigJson ?>,
+                clientConfig: <?= /** @noEscape */ $widgetConfigJson ?>,
                 
                 /**
                  * cart section data.
@@ -56,14 +56,13 @@ $uniqueId = '_' . uniqid();
                 
                 /**
                  * Handles the event when dynamic content related to the cart is loaded.
-                 * Updates the cartSection data based on the provided sectionData.
+                 * Updates the cartSection data based on the provided data.
                  * 
-                 * @param {Object} sectionData Data about the cart section.
+                 * @param {Object} data Data about the cart section.
                  */
-                getSectionData(sectionData) {
-                    if (sectionData.cart) {
-                        this.cartSection = sectionData.cart;
-                        this.checkAndInitializeButtons();
+                getData(data) {
+                    if (data.cart) {
+                        this.cartSection = data.cart;
                     }
                 },
                     
@@ -76,8 +75,8 @@ $uniqueId = '_' . uniqid();
                 initializePayPalScript() {
                     return new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
-                        const config = this.config;
-
+                        const config = this.clientConfig;
+                        
                         let paypalScript = document.getElementById(scriptId);
                         if (paypalScript) {
                             return resolve(window.paypal);
@@ -109,11 +108,10 @@ $uniqueId = '_' . uniqid();
                         await this.initializePayPalScript();
                         
                         const paypal = window.paypal;
-                        const attributes = this.config.attributes;
-                        const cartAmount = this.cartSection.subtotalAmount;
+                        const attributes = this.clientConfig.attributes;
 
-                        paypal.Messages({
-                            amount: cartAmount,
+                        paypal && paypal.Messages({
+                            amount: this.cartSection.subtotalAmount,
                             placement: attributes['data-pp-placement'] || 'product',
                             style: {
                                 'layout': attributes['data-pp-style-layout'] || 'text',
@@ -144,7 +142,7 @@ $uniqueId = '_' . uniqid();
                         return;
                     }
                     
-                    if (this.cartSection && !this.alreadyLoaded) {
+                    if (this.cartSection.items && this.cartSection.items.length && !this.alreadyLoaded) {
                         this.initializeButtons();
                         this.alreadyLoaded = true;
                     } else {
