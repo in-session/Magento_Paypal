@@ -86,7 +86,7 @@ $uniqueId   = '_' . uniqid();
                             console.warn("createOrder");
 
                             // Prepares parameters for the order
-                            const params = "quote_id=" + this.cart.cartId +
+                            const params = "quote_id=" + config.quoteId +
                                 "&customer_id=" + (config.customerId ? config.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
                                 "&button=" + config.button;
@@ -110,7 +110,7 @@ $uniqueId   = '_' . uniqid();
                             // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
-                                "&quoteId=" + (this.cart.quoteId || '') +
+                                "&quoteId=" + (config.quoteId || '') +
                                 "&customerId=" + (config.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
