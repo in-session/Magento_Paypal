@@ -20,7 +20,6 @@ $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/button']);
 $uniqueId   = '_' . uniqid();
 ?>
 <div x-data="initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
-     @private-content-loaded.window="getSectionData($event.detail.data)"
      x-ref="paypalInContextProductMinicart"
      class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
 </div>
@@ -28,18 +27,12 @@ $uniqueId   = '_' . uniqid();
     function initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             refs: false,
-            paypalInContextProduct: null,
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
+            clientConfig: {},
             customerSection: {},
-            cartSection: false,
+            cartSection: {},
             actions: {},
             checkAndInitializeButtons: false,
-            getSectionData(sectionData) {
-                // When dynamic content related to the cart is loaded, update cartSection data
-                if (sectionData.cart) {
-                    this.cartSection = sectionData.cart;
-                }
-            },
             initializePayPalScript() {
                 // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
                 return new Promise((resolve, reject) => {
@@ -74,10 +67,9 @@ $uniqueId   = '_' . uniqid();
                     const clientConfig = this.clientConfig;
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
-                    const customerSection = this.customerSection;
                     const cartSection = this.cartSection;
 
-                    paypal.Buttons({
+                    paypal && paypal.Buttons({
                         style: {
                             ...clientConfig.styles,
                             height: 42, // Sets the style.height option to a value from 25 to 55.
@@ -179,6 +171,8 @@ $uniqueId   = '_' . uniqid();
                 return v ? v[2] : null;
             },
             init() {
+                //get cart informations
+                this.cartSection = this.cart;
                 // Sets up event listeners
                 window.addEventListener('init-external-scripts', () => {
                     this.checkAndInitializeButtons()
