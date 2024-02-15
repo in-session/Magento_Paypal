@@ -24,7 +24,7 @@ $uniqueId = '_' . uniqid();
 
 <?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
 <?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
-    <div x-intersect="initializeButtons()"
+    <div x-intersect="checkAndInitializeButtons()"
          x-data="paypalPaylater<?= $escaper->escapeHtmlAttr($uniqueId) ?>()" 
          @private-content-loaded.window="getSectionData($event.detail.data)"
          class="px-6 md:px-0 my-3 min-h-[20px] order-last">
@@ -44,16 +44,16 @@ $uniqueId = '_' . uniqid();
                 config: <?= /** @noEscape */ $widgetConfigJson ?>,
                 
                 /**
-                 * Shopping cart section data.
+                 * cart section data.
                  * @type {Object|boolean}
                  */
                 cartSection: false,
-                    
+                
                 /**
                  * @type {Object|boolean}
                  */
-                shown: false,
-                    
+                alreadyLoaded: false, 
+                
                 /**
                  * Handles the event when dynamic content related to the cart is loaded.
                  * Updates the cartSection data based on the provided sectionData.
@@ -63,6 +63,7 @@ $uniqueId = '_' . uniqid();
                 getSectionData(sectionData) {
                     if (sectionData.cart) {
                         this.cartSection = sectionData.cart;
+                        this.checkAndInitializeButtons();
                     }
                 },
                     
@@ -103,22 +104,19 @@ $uniqueId = '_' . uniqid();
                  * Initializes and renders the PayPal buttons and messages based on the current cart section.
                  * Utilizes the PayPal SDK loaded by initializePayLater.
                  */
-                initializeButtons() {
-                    if (this.shown == true) {
-                        return;
-                    }
-                    this.shown = true;
-                    
+                async initializeButtons() {
                     const form = document.getElementById('product_addtocart_form');
                     if (!form) {
                         return;
                     }
-                    this.initializePayLater().then(() => {
-                        
-                        const paypal = window.paypal;
+                    
+                    try {
+                        const paypal = await this.initializePayLater();
+
                         const attributes = this.config.attributes;
-                        const cartAmount = this.cartSection.subtotalAmount; 
-                        
+
+                        const cartAmount = this.cartSection.subtotalAmount; // Fallback-Wert
+
                         paypal.Messages({
                             amount: cartAmount,
                             placement: attributes['data-pp-placement'] || 'product',
@@ -136,9 +134,22 @@ $uniqueId = '_' . uniqid();
                                 'ratio': attributes['data-pp-style-ratio'] || '1x1',
                             },
                         }).render(this.$refs.ppMessage);
-                    }).catch(error => {
-                        console.error(error.message);
-                    });
+
+                    } catch (error) {
+                        console.error("Fehler beim Laden von PayPal SDK: ", error);
+                    }
+                },
+                    
+                /**
+                 * Check and initialize
+                 */    
+                checkAndInitializeButtons() {
+                    if (this.cartSection && !this.alreadyLoaded) {
+                        this.initializeButtons();
+                        this.alreadyLoaded = true;
+                    } else {
+                        return;
+                    }
                 },
                     
                 /**
@@ -146,7 +157,7 @@ $uniqueId = '_' . uniqid();
                  */
                 init() {
                     window.addEventListener('init-external-scripts', () => {
-                        this.initializeButtons()
+                        this.checkAndInitializeButtons();
                     }, { once: true });
                 }
             };
