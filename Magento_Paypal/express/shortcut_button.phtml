@@ -19,9 +19,9 @@ $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/product-expr
 
 $uniqueId   = '_' . uniqid();
 ?>
-<div x-intersect="checkAndInitializeButtons()"
+<div x-intersect.once="checkAndInitializeButtons()"
      x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
-     @private-content-loaded.window="getSectionData($event.detail.data)"
+     @private-content-loaded.window="getData($event.detail.data)"
      class="min-h-[42px]">
     <div x-ref="paypalInContextProduct"
          class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
@@ -30,34 +30,35 @@ $uniqueId   = '_' . uniqid();
 <script>
     function initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
-            refs: false,
-            paypalInContextProduct: null,
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             customerSection: {},
             cartSection: false,
             actions: {},
-            checkAndInitializeButtons: false,
-            getSectionData(sectionData) {
+            alreadyLoaded: false,
+            getData(data) {
                 // When dynamic content related to the cart is loaded, update cartSection data
-                if (sectionData.cart) {
-                    this.cartSection = sectionData.cart;
+                if (data.customer) {
+                    this.customerSection = data.customer;
                 }
+                if (data.cart) {
+                    this.cartSection = data.cart;
+                }              
             },
             initializePayPalScript() {
                 // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
                 return new Promise((resolve, reject) => {
                     const scriptId = 'paypal-script';
-                    const clientConfig = this.clientConfig;
-
+                    const config = this.clientConfig;
+                    
                     let paypalScript = document.getElementById(scriptId);
                     if (paypalScript) {
                         return resolve(window.paypal);
                     }
 
                     const script = document.createElement('script');
-                    script.src = clientConfig.sdkUrl;
+                    script.src = config.sdkUrl;
                     script.id = scriptId;
-                    script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
+                    script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
 
                     script.addEventListener('load', function() {
                         resolve(window.paypal);
@@ -74,15 +75,13 @@ $uniqueId   = '_' . uniqid();
                 try {
                     await this.initializePayPalScript();
 
-                    const clientConfig = this.clientConfig;
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
-                    const customerSection = this.customerSection;
-                    const cartSection = this.cartSection;
+                    const config = this.clientConfig;
 
-                    paypal.Buttons({
+                    paypal && paypal.Buttons({
                         style: {
-                            ...clientConfig.styles,
+                            ...config.styles,
                             height: 42, // Sets the style.height option to a value from 25 to 55.
                             disableMaxWidth: false, // The button has a default maximum width of 750px, but you can make the button larger with true and set container size
                             tagline: false // Set the style.layout to horizontal for taglines.
@@ -99,13 +98,13 @@ $uniqueId   = '_' . uniqid();
                             console.warn("createOrder");
 
                             // Prepares parameters for the order
-                            const params = "quote_id=" + cartSection.cartId +
-                                "&customer_id=" + (clientConfig.customerId ? clientConfig.customerId : '') +
+                            const params = "quote_id=" + this.cartSection.cartId +
+                                "&customer_id=" + (config.customerId ? config.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
-                                "&button=" + clientConfig.button;
+                                "&button=" + this.clientConfig.button;
 
                             // Sends a request to create the order
-                            return window.fetch(clientConfig.getTokenUrl, {
+                            return window.fetch(config.getTokenUrl, {
                                     "headers": {
                                         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
                                     },
@@ -123,12 +122,12 @@ $uniqueId   = '_' . uniqid();
                             // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
-                                "&quoteId=" + (cartSection.quoteId || '') +
-                                "&customerId=" + (clientConfig.customerId || '') +
+                                "&quoteId=" + (this.cartSection.quoteId || '') +
+                                "&customerId=" + (config.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
                             // Processes the approved payment
-                            return window.fetch(clientConfig.onAuthorizeUrl, {
+                            return window.fetch(config.onAuthorizeUrl, {
                                     "headers": {
                                         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
                                     },
@@ -155,7 +154,7 @@ $uniqueId   = '_' . uniqid();
                             // No changes as should remain on the same page
                         },
                         onError(err) {
-                            window.location.href = clientConfig.onCancelUrl;
+                            window.location.href = config.onCancelUrl;
                         }
                     }).render(this.$refs.paypalInContextProduct);
                 } catch (error) {
@@ -169,11 +168,9 @@ $uniqueId   = '_' . uniqid();
                 }
 
                 // Checks cart section data and initializes buttons if not already done
-                if (this.cartSection && !this.alreadyLoaded) {
+                if (this.cartSection.items && this.cartSection.items.length && !this.alreadyLoaded) {
                     this.initializeButtons();
                     this.alreadyLoaded = true;
-                } else {
-                    return;
                 }
             },
             getCookie(name) {
