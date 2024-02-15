@@ -104,12 +104,7 @@ $uniqueId = '_' . uniqid();
                  * Initializes and renders the PayPal buttons and messages based on the current cart section.
                  * Utilizes the PayPal SDK loaded by initializePayLater.
                  */
-                async initializeButtons() {
-                    const form = document.getElementById('product_addtocart_form');
-                    if (!form) {
-                        return;
-                    }
-                    
+                async initializeButtons() {                    
                     try {
                         const paypal = await this.initializePayLater();
 
@@ -143,7 +138,12 @@ $uniqueId = '_' . uniqid();
                 /**
                  * Check and initialize
                  */    
-                checkAndInitializeButtons() {
+                checkAndInitializeButtons() {                    
+                    const form = document.getElementById('product_addtocart_form');
+                    if (!form) {
+                        return;
+                    }
+                    
                     if (this.cartSection && !this.alreadyLoaded) {
                         this.initializeButtons();
                         this.alreadyLoaded = true;
