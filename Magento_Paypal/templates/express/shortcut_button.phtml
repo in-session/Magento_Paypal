@@ -78,6 +78,7 @@ $uniqueId   = '_' . uniqid();
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
                     const config = this.clientConfig;
+                    const cartSection = this.cartSection;
 
                     paypal && paypal.Buttons({
                         style: {
@@ -98,10 +99,10 @@ $uniqueId   = '_' . uniqid();
                             console.warn("createOrder");
 
                             // Prepares parameters for the order
-                            const params = "quote_id=" + this.cartSection.cartId +
+                            const params = "quote_id=" + cartSection.cartId +
                                 "&customer_id=" + (config.customerId ? config.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
-                                "&button=" + this.clientConfig.button;
+                                "&button=" + config.button;
 
                             // Sends a request to create the order
                             return window.fetch(config.getTokenUrl, {
@@ -122,7 +123,7 @@ $uniqueId   = '_' . uniqid();
                             // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
-                                "&quoteId=" + (this.cartSection.quoteId || '') +
+                                "&quoteId=" + (cartSection.quoteId || '') +
                                 "&customerId=" + (config.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
