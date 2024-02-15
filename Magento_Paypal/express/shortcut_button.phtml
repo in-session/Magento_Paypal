@@ -28,7 +28,7 @@ $uniqueId   = '_' . uniqid();
     </div>
 </div>
 <script>
-    function initPayPalInContext <?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
+    function initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             refs: false,
             paypalInContextProduct: null,
@@ -70,15 +70,16 @@ $uniqueId   = '_' . uniqid();
                     document.body.appendChild(script);
                 })
             },
-            initializeButtons() {
+            async initializeButtons() {
+                try {
+                    await this.initializePayPalScript();
 
-                // Initializes PayPal buttons after loading the SDK
-                this.initializePayPalScript().then(() => {
                     const clientConfig = this.clientConfig;
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
                     const customerSection = this.customerSection;
                     const cartSection = this.cartSection;
+
                     paypal.Buttons({
                         style: {
                             ...clientConfig.styles,
@@ -151,17 +152,15 @@ $uniqueId   = '_' . uniqid();
                                 });
                         },
                         onCancel(data, actions) {
-                            // Redirects to a specified URL on cancellation
-                            window.location.href = clientConfig.onCancelUrl;
+                            // No changes as should remain on the same page
                         },
                         onError(err) {
-                            // Handles errors
-                            console.error('Unfortunately, an error occurred during the enquiry');
+                            window.location.href = clientConfig.onCancelUrl;
                         }
                     }).render(this.$refs.paypalInContextProduct);
-                }).catch(error => {
-                    console.error(error.message);
-                });
+                } catch (error) {
+                    console.error("Error loading PayPal SDK: ", error);
+                }
             },
             checkAndInitializeButtons() {
                 const form = document.getElementById('product_addtocart_form');
@@ -186,9 +185,7 @@ $uniqueId   = '_' . uniqid();
                 // Sets up event listeners
                 window.addEventListener('init-external-scripts', () => {
                     this.checkAndInitializeButtons()
-                }, {
-                    once: true
-                });
+                }, { once: true });
             }
         }
     }
