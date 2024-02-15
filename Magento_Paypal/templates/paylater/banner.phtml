@@ -73,7 +73,7 @@ $uniqueId = '_' . uniqid();
                  * 
                  * @returns {Promise<Object>} A promise that resolves with the PayPal object.
                  */
-                initializePayLater() {
+                initializePayPalScript() {
                     return new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
                         const config = this.config;
@@ -106,10 +106,10 @@ $uniqueId = '_' . uniqid();
                  */
                 async initializeButtons() {                    
                     try {
-                        const paypal = await this.initializePayLater();
-
+                        await this.initializePayPalScript();
+                        
+                        const paypal = window.paypal;
                         const attributes = this.config.attributes;
-
                         const cartAmount = this.cartSection.subtotalAmount;
 
                         paypal.Messages({
