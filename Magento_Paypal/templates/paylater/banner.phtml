@@ -41,7 +41,7 @@ $uniqueId = '_' . uniqid();
                  * Configuration object derived from server-side JSON.
                  * @type {Object}
                  */
-                config: <?= /** @noEscape */ $widgetConfigJson ?>.config || {},
+                config: <?= /** @noEscape */ $widgetConfigJson ?>,
                 
                 /**
                  * Shopping cart section data.
@@ -117,10 +117,10 @@ $uniqueId = '_' . uniqid();
                         
                         const paypal = window.paypal;
                         const attributes = this.config.attributes;
-                        const cartSection = this.cartSection;
+                        const cartAmount = this.cartSection.subtotalAmount; 
                         
                         paypal.Messages({
-                            amount: cartSection.subtotalAmount,
+                            amount: cartAmount,
                             placement: attributes['data-pp-placement'] || 'product',
                             style: {
                                 'layout': attributes['data-pp-style-layout'] || 'text',
