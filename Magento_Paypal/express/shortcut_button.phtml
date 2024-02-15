@@ -19,32 +19,36 @@ $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/product-expr
 
 $uniqueId   = '_' . uniqid();
 ?>
-<div x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
-     x-ref="paypalInContextProduct"
+<div x-intersect="checkAndInitializeButtons()"
+     x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
      @private-content-loaded.window="getSectionData($event.detail.data)"
-     class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
+     class="min-h-[42px]">
+    <div x-ref="paypalInContextProduct"
+         class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
+    </div>
 </div>
-
 <script>
-    function initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
+    function initPayPalInContext <?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             refs: false,
             paypalInContextProduct: null,
-            clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig || {},
+            clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             customerSection: {},
             cartSection: false,
             actions: {},
-            triggerAction: false,
+            checkAndInitializeButtons: false,
             getSectionData(sectionData) {
+                // When dynamic content related to the cart is loaded, update cartSection data
                 if (sectionData.cart) {
                     this.cartSection = sectionData.cart;
                 }
             },
             initializePayPalScript() {
+                // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
                 return new Promise((resolve, reject) => {
                     const scriptId = 'paypal-script';
                     const clientConfig = this.clientConfig;
-                    
+
                     let paypalScript = document.getElementById(scriptId);
                     if (paypalScript) {
                         return resolve(window.paypal);
@@ -53,8 +57,7 @@ $uniqueId   = '_' . uniqid();
                     const script = document.createElement('script');
                     script.src = clientConfig.sdkUrl;
                     script.id = scriptId;
-                    //todo
-                    //script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
+                    script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
 
                     script.addEventListener('load', function() {
                         resolve(window.paypal);
@@ -68,112 +71,91 @@ $uniqueId   = '_' . uniqid();
                 })
             },
             initializeButtons() {
-                this.initializePayPalScript().then(() => {
 
+                // Initializes PayPal buttons after loading the SDK
+                this.initializePayPalScript().then(() => {
                     const clientConfig = this.clientConfig;
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
                     const customerSection = this.customerSection;
                     const cartSection = this.cartSection;
-                    const triggerAddToCartClick = () => {
-                        return new Promise((resolve, reject) => {
-                            
-                            //check add to cart
-                            const addToCartButton = document.getElementById('product-addtocart-button');
-                            if (addToCartButton) {
-                                
-                                //POST request ist more better
-                                //addToCartButton.click();
-                                
-                                //reload cart data
-                                alert('reload cart data');
-                                
-                                //and then
-                                //this.triggerAction = true;
-                                
-                                //after reload
-                                resolve();
-                            } else {
-                                //console.error('Add to Cart button not found!');
-                                //reject(new Error('Add to Cart button not found'));
-                            }
-                        });
-                    };                    
                     paypal.Buttons({
                         style: {
-                            ...clientConfig.styles, 
-                            height: 42, //set the style.height option to a value from 25 to 55.
-                            disableMaxWidth: false, //The button has a default maximum width of 750px, but you can make the button larger with tru and set container size
-                            tagline: false //Set the style.layout to horizontal for taglines.
-                        },                        
+                            ...clientConfig.styles,
+                            height: 42, // Sets the style.height option to a value from 25 to 55.
+                            disableMaxWidth: false, // The button has a default maximum width of 750px, but you can make the button larger with true and set container size
+                            tagline: false // Set the style.layout to horizontal for taglines.
+                        },
                         onInit: (data, actions) => {
                             this.actions = actions || this.actions;
-                            actions.disable();
                         },
                         onClick: async (data, actions) => {
-                            try {
-                                await triggerAddToCartClick();    
-                                paypal.actions = this.actions;                         
-                                alert('make action after add cart');
-                            } catch (error) {
-                                console.error(error);
-                            }
-                        },   
+                            // Handles the button add to cart
+                            console.warn("onClick");
+                        },
                         createOrder() {
+                            // Retrieves full order details
+                            console.warn("createOrder");
+
+                            // Prepares parameters for the order
                             const params = "quote_id=" + cartSection.cartId +
-                                "&customer_id=" + (clientConfig.customerId ? clientConfig.customerId : '' ) +
+                                "&customer_id=" + (clientConfig.customerId ? clientConfig.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
                                 "&button=" + clientConfig.button;
 
+                            // Sends a request to create the order
                             return window.fetch(clientConfig.getTokenUrl, {
-                                "headers": {
-                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                },
-                                "body": params,
-                                "method": "POST",
-                                "mode": "cors",
-                                "credentials": "include"
-                            })
-                            .then(result => result.json())
-                            .then(data => data.token)
-                            .catch((error) => console.log(error));
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                    },
+                                    "body": params,
+                                    "method": "POST",
+                                    "mode": "cors",
+                                    "credentials": "include"
+                                })
+                                .then(result => result.json())
+                                .then(data => data.token)
+                                .catch((error) => console.log(error));
                         },
-                        
+
                         onApprove(data, actions) {
+                            // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
                                 "&quoteId=" + (cartSection.quoteId || '') +
                                 "&customerId=" + (clientConfig.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
+                            // Processes the approved payment
                             return window.fetch(clientConfig.onAuthorizeUrl, {
-                                "headers": {
-                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                },
-                                "body": params,
-                                "method": "POST",
-                                "mode": "cors",
-                                "credentials": "include"
-                            })
-                            .then(data => {
-                                return data.json()
-                            }).then(response => {
-                                if (response.success) {
-                                    return actions.redirect(response.redirectUrl);
-                                }
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                    },
+                                    "body": params,
+                                    "method": "POST",
+                                    "mode": "cors",
+                                    "credentials": "include"
+                                })
+                                .then(data => {
+                                    return data.json()
+                                }).then(response => {
+                                    if (response.success) {
+                                        return actions.redirect(response.redirectUrl);
+                                    }
 
-                                throw new Error(response['error_message']);
-                            })
-                            .catch((error) => console.log(error)).finally(() => {
-                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
-                                window.dispatchEvent(reloadCustomerDataEvent);
-                            });
+                                    throw new Error(response['error_message']);
+                                })
+                                .catch((error) => console.log(error)).finally(() => {
+                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                    window.dispatchEvent(reloadCustomerDataEvent);
+                                });
                         },
-                        
                         onCancel(data, actions) {
+                            // Redirects to a specified URL on cancellation
                             window.location.href = clientConfig.onCancelUrl;
                         },
                         onError(err) {
+                            // Handles errors
                             console.error('Unfortunately, an error occurred during the enquiry');
                         }
                     }).render(this.$refs.paypalInContextProduct);
@@ -181,14 +163,32 @@ $uniqueId   = '_' . uniqid();
                     console.error(error.message);
                 });
             },
+            checkAndInitializeButtons() {
+                const form = document.getElementById('product_addtocart_form');
+                if (!form) {
+                    return;
+                }
+
+                // Checks cart section data and initializes buttons if not already done
+                if (this.cartSection && !this.alreadyLoaded) {
+                    this.initializeButtons();
+                    this.alreadyLoaded = true;
+                } else {
+                    return;
+                }
+            },
             getCookie(name) {
+                // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
                 return v ? v[2] : null;
             },
             init() {
+                // Sets up event listeners
                 window.addEventListener('init-external-scripts', () => {
-                    this.initializeButtons()
-                }, { once: true });
+                    this.checkAndInitializeButtons()
+                }, {
+                    once: true
+                });
             }
         }
     }
