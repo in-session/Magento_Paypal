@@ -16,110 +16,124 @@ use Magento\Paypal\Block\Express\InContext\Minicart\SmartButton;
 
 $widgetData = json_decode($block->getJsInitParams(), true);
 $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/button']);
+
 $uniqueId   = '_' . uniqid();
 ?>
-<div x-data="initPayPalInContextButton<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
-     x-init="refs = $refs"
-     x-ref="buttonContainer-<?= $escaper->escapeHtmlAttr($uniqueId) ?>"
+<div x-data="initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
      @private-content-loaded.window="getSectionData($event.detail.data)"
-     @toggle-cart.window="handleCartToggle()"
-     class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
+     x-ref="paypalInContextProductMinicart"
+     class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
 </div>
-
 <script>
-    function initPayPalInContextButton<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
+    function initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             refs: false,
-            clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig || {},
+            paypalInContextProduct: null,
+            clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             customerSection: {},
             cartSection: false,
             actions: {},
+            checkAndInitializeButtons: false,
             getSectionData(sectionData) {
-                if (sectionData.customer) {
-                    this.customerSection = sectionData.customer;
-                }
+                // When dynamic content related to the cart is loaded, update cartSection data
                 if (sectionData.cart) {
                     this.cartSection = sectionData.cart;
                 }
-                if (this.cartSection.items && this.cartSection.items.length) {
-                    // todo: check if allowed by verifying logged in and isGuestCheckoutAllowed = true
-                    this.initializeButtons();
-                }
             },
-            handleCartToggle(event) {
-                this.initializeButtons();
+            initializePayPalScript() {
+                // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
+                return new Promise((resolve, reject) => {
+                    const scriptId = 'paypal-script';
+                    const clientConfig = this.clientConfig;
+
+                    let paypalScript = document.getElementById(scriptId);
+                    if (paypalScript) {
+                        return resolve(window.paypal);
+                    }
+
+                    const script = document.createElement('script');
+                    script.src = clientConfig.sdkUrl;
+                    script.id = scriptId;
+                    script.setAttribute('data-partner-attribution-id', clientConfig.dataAttributes['data-partner-attribution-id']);
+
+                    script.addEventListener('load', function() {
+                        resolve(window.paypal);
+                    }, false);
+
+                    script.addEventListener('error', function() {
+                        reject(new Error('PayPal SDK could not be loaded'));
+                    }, false);
+
+                    document.body.appendChild(script);
+                })
             },
-            initializeButtons() {
-                const element = this.refs['buttonContainer-<?= $escaper->escapeJs($uniqueId) ?>'];
-                const clientConfig = this.clientConfig;
+            async initializeButtons() {
+                try {
+                    await this.initializePayPalScript();
 
-                const loadPayPalScriptPromise = this.createScriptLoadPromise(clientConfig.sdkUrl);
-
-                Promise.all(loadPayPalScriptPromise).then(() => {
+                    const clientConfig = this.clientConfig;
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
+                    const customerSection = this.customerSection;
+                    const cartSection = this.cartSection;
 
-                    paypal && paypal.Buttons({
-                        style: clientConfig.styles,
-
-                        /**
-                         * onInit is called when the button first renders
-                         * @param {Object} data
-                         * @param {Object} actions
-                         */
-                        onInit(data, actions) {
+                    paypal.Buttons({
+                        style: {
+                            ...clientConfig.styles,
+                            height: 42, // Sets the style.height option to a value from 25 to 55.
+                            disableMaxWidth: false, // The button has a default maximum width of 750px, but you can make the button larger with true and set container size
+                            tagline: false // Set the style.layout to horizontal for taglines.
+                        },
+                        onInit: (data, actions) => {
                             this.actions = actions || this.actions;
                         },
-
-                        /**
-                         * Triggers beforePayment action on PayPal buttons
-                         * @returns {Object} jQuery promise
-                         */
+                        onClick: async (data, actions) => {
+                            // Handles the button add to cart
+                            console.warn("onClick");
+                        },
                         createOrder() {
-                            const params = "quote_id="+clientConfig.quoteId +
-                                "&customer_id=" + ( clientConfig.customerId ?
-                                    clientConfig.customerId :
-                                    ''
-                                ) +
+                            // Retrieves full order details
+                            console.warn("createOrder");
+
+                            // Prepares parameters for the order
+                            const params = "quote_id=" + cartSection.cartId +
+                                "&customer_id=" + (clientConfig.customerId ? clientConfig.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
                                 "&button=" + clientConfig.button;
 
+                            // Sends a request to create the order
                             return window.fetch(clientConfig.getTokenUrl, {
-                                "headers": {
-                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                },
-                                "body": params,
-                                "method": "POST",
-                                "mode": "cors",
-                                "credentials": "include"
-                            })
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                    },
+                                    "body": params,
+                                    "method": "POST",
+                                    "mode": "cors",
+                                    "credentials": "include"
+                                })
                                 .then(result => result.json())
                                 .then(data => data.token)
-                                .catch((error)=>console.log(error));
-
+                                .catch((error) => console.log(error));
                         },
 
-                        /**
-                         * Triggers beforeOnAuthorize action on PayPal buttons
-                         * @param {Object} data
-                         * @param {Object} actions
-                         */
                         onApprove(data, actions) {
+                            // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
-                                "&quoteId=" + (clientConfig.quoteId || '') +
+                                "&quoteId=" + (cartSection.quoteId || '') +
                                 "&customerId=" + (clientConfig.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
+                            // Processes the approved payment
                             return window.fetch(clientConfig.onAuthorizeUrl, {
-                                "headers": {
-                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                },
-                                "body": params,
-                                "method": "POST",
-                                "mode": "cors",
-                                "credentials": "include"
-                            })
+                                    "headers": {
+                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                    },
+                                    "body": params,
+                                    "method": "POST",
+                                    "mode": "cors",
+                                    "credentials": "include"
+                                })
                                 .then(data => {
                                     return data.json()
                                 }).then(response => {
@@ -129,70 +143,47 @@ $uniqueId   = '_' . uniqid();
 
                                     throw new Error(response['error_message']);
                                 })
-                                .catch((error)=>console.log(error)).finally(()=>{
+                                .catch((error) => console.log(error)).finally(() => {
                                     const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
                                     window.dispatchEvent(reloadCustomerDataEvent);
                                 });
                         },
-
-                        /**
-                         * Execute logic on Paypal button click
-                         */
-                        onClick() {
-
-                            paypal.actions = this.actions;
-                            //clientConfig.rendererComponent.validate();
-                            //clientConfig.rendererComponent.onClick();
-                        },
-
-                        /**
-                         * Process cancel action
-                         * @param {Object} data
-                         * @param {Object} actions
-                         */
                         onCancel(data, actions) {
-                            //clientConfig.rendererComponent.onCancel(data, actions);
-
+                            // No changes as should remain on the same page
                         },
-
-                        /**
-                         * Process errors
-                         *
-                         * @param {Error} err
-                         */
                         onError(err) {
-                            //clientConfig.rendererComponent.onError(err);
-
+                            window.location.href = clientConfig.onCancelUrl;
                         }
-                    }).render(element);
-                });
+                    }).render(this.$refs.paypalInContextProductMinicart);
+                } catch (error) {
+                    console.error("Error loading PayPal SDK: ", error);
+                }
             },
-            createScriptLoadPromise(url) {
-                const promises = [];
+            checkAndInitializeButtons() {
+                const form = document.getElementById('product_addtocart_form');
+                if (!form) {
+                    return;
+                }
 
-                promises.push(new Promise(function(resolve, reject) {
-                    const script = document.createElement('script');
-                    script.src = url;
-
-                    script.addEventListener('load', function() {
-                        resolve(script);
-                    }, false);
-
-                    script.addEventListener('error', function(event) {
-                        reject(script);
-                        console.log('The PayPal script could not be loaded', event);
-                    }, false);
-
-                    document.body.appendChild(script);
-                }));
-
-                return promises;
+                // Checks cart section data and initializes buttons if not already done
+                if (this.cartSection && !this.alreadyLoaded) {
+                    this.initializeButtons();
+                    this.alreadyLoaded = true;
+                } else {
+                    return;
+                }
             },
             getCookie(name) {
+                // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
                 return v ? v[2] : null;
+            },
+            init() {
+                // Sets up event listeners
+                window.addEventListener('init-external-scripts', () => {
+                    this.checkAndInitializeButtons()
+                }, { once: true });
             }
         }
     }
 </script>
-
