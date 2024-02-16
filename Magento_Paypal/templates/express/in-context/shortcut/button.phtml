@@ -15,7 +15,7 @@ use Magento\Paypal\Block\Express\InContext\Minicart\SmartButton;
 /** @var Escaper $escaper */
 
 // Get for the parent block
-$parentBlockName = str_replace('.', '-', $block->getParentBlock() ? $block->getParentBlock()->getNameInLayout() : '');
+$parentBlockName = str_replace(['.', '-', '_'], '', $block->getParentBlock() ? $block->getParentBlock()->getNameInLayout() : '');
 
 $widgetData = json_decode($block->getJsInitParams(), true);
 $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/button']);
@@ -23,9 +23,9 @@ $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/button']);
 $uniqueId   = '_' . uniqid();
 ?>
 
-<div x-data="initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
+<div x-data="initPayPal<?= $escaper->escapeHtmlAttr($parentBlockName) ?><?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
      x-ref="paypalInContextProductMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>"
-     <?php if ($parentBlockName === 'extra_actions'): ?>
+     <?php if ($parentBlockName === 'extraactions'): ?>
          @toggle-cart.window="handleCartToggle()"
      <?php else: ?>
          @private-content-loaded.window="getSectionData($event.detail.data)"
@@ -33,11 +33,11 @@ $uniqueId   = '_' . uniqid();
      class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($parentBlockName) ?>-container">
 </div>
 <script>
-    function initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
+    function initPayPal<?= $escaper->escapeHtmlAttr($parentBlockName) ?><?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             actions: {},
-            <?php if ($parentBlockName === 'extra_actions'): ?>
+            <?php if ($parentBlockName === 'extraactions'): ?>
                 handleCartToggle(event) {
                     this.checkAndInitializeButtons();
                 },
@@ -53,7 +53,7 @@ $uniqueId   = '_' . uniqid();
                     }
                     if (this.cart.items && this.cart.items.length) {
                         // todo: check if allowed by verifying logged in and isGuestCheckoutAllowed = true
-                        this.initializeButtons();
+                        this.checkAndInitializeButtons();
                     }
                 },    
             <?php endif; ?>    
@@ -187,10 +187,10 @@ $uniqueId   = '_' . uniqid();
                 // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
                 return v ? v[2] : null;
-            },
+            }<?php /*?>,
             init() {
                 this.checkAndInitializeButtons();
-            }
+            }<?php */?>
         }
     }
 </script>
