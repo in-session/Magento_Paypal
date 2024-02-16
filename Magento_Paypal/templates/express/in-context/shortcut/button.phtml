@@ -14,24 +14,49 @@ use Magento\Paypal\Block\Express\InContext\Minicart\SmartButton;
 /** @var SmartButton $block */
 /** @var Escaper $escaper */
 
+// Get for the parent block
+$parentBlockName = str_replace('.', '-', $block->getParentBlock() ? $block->getParentBlock()->getNameInLayout() : '');
+
 $widgetData = json_decode($block->getJsInitParams(), true);
 $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/button']);
 
 $uniqueId   = '_' . uniqid();
 ?>
+
 <div x-data="initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
-     x-ref="paypalInContextProductMinicart"
-     @toggle-cart.window="handleCartToggle()"
-     class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
+     x-ref="paypalInContextProductMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>"
+     <?php if ($parentBlockName === 'extra_actions'): ?>
+         @toggle-cart.window="handleCartToggle()"
+     <?php else: ?>
+         @private-content-loaded.window="getSectionData($event.detail.data)"
+     <?php endif; ?>
+     class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($parentBlockName) ?>-container">
 </div>
 <script>
     function initPayPalInContextMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             actions: {},
-            handleCartToggle(event) {
-                this.checkAndInitializeButtons();
-            },    
+            <?php if ($parentBlockName === 'extra_actions'): ?>
+                handleCartToggle(event) {
+                    this.checkAndInitializeButtons();
+                },
+            <?php else: ?>
+                customerSection: {},
+                cart: false,
+                getSectionData(sectionData) {
+                    if (sectionData.customer) {
+                        this.customerSection = sectionData.customer;
+                    }
+                    if (sectionData.cart) {
+                        this.cart = sectionData.cart;
+                    }
+                    if (this.cart.items && this.cart.items.length) {
+                        // todo: check if allowed by verifying logged in and isGuestCheckoutAllowed = true
+                        this.initializeButtons();
+                    }
+                },    
+            <?php endif; ?>    
             initializePayPalScript() {
                 // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
                 return new Promise((resolve, reject) => {
@@ -144,7 +169,7 @@ $uniqueId   = '_' . uniqid();
                         onError(err) {
                             // window.location.href = config.onCancelUrl;
                         }
-                    }).render(this.$refs.paypalInContextProductMinicart);
+                    }).render(this.$refs.paypalInContextProductMinicart<?= $escaper->escapeHtmlAttr($uniqueId) ?>);
                 } catch (error) {
                     console.error("Error loading PayPal SDK: ", error);
                 }
