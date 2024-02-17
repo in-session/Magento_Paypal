@@ -122,6 +122,7 @@ $uniqueId   = '_' . uniqid();
                                                      
                             // Get product value and qty input element                            
                             const productValue = formData.get('product');
+                            const itemId = formData.get('item');
                             const qtyInput = document.getElementById('qty[' + productValue + ']');
                             
                             // Switch Post Url and change qty base on card and input
@@ -140,7 +141,7 @@ $uniqueId   = '_' . uniqid();
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
                                 product: productValue,
-                                item_id: productValue,
+                                item_id: itemId,
                                 qty: qtyValue,
                                 uenc: hyva.getUenc(),
                                 customer_id: (config.customerId || ''),
