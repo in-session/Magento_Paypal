@@ -119,40 +119,32 @@ $uniqueId   = '_' . uniqid();
                             // Get form data
                             const form = document.getElementById('product_addtocart_form');
                             const formData = new FormData(form);
-                            
-                            let params = "";
-                            for (let [key, value] of formData.entries()) {
-                                if (params !== "") {
-                                    params += "&";
-                                }
-                                params += `${key}=${encodeURIComponent(value)}`;
-                            }
-                            
-                            const formKey = hyva.getFormKey();
-                            
+                                                     
                             // Get product value and qty input element                            
                             const productValue = formData.get('product');
                             const qtyInput = document.getElementById('qty[' + productValue + ']');
                             
+                            // Switch Post Url and change qty base on card and input
                             let postUrl;
-                            let qtyValue;
-
+                            let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
                             const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
 
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
                                 postUrl = `${BASE_URL}checkout/cart/updateItemQty/`;
-                                qtyValue = 5;
+                                qtyValue += existingItem.qty;
                             } else {
                                 postUrl = `${BASE_URL}checkout/cart/add/`;
-                                qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
                             }
 
                             const paramsData = new URLSearchParams({
-                                form_key: formKey,
+                                form_key: (getCookie('form_key') || ''),
                                 product: productValue,
+                                item_id: productValue,
                                 qty: qtyValue,
-                                uenc: hyva.getUenc()
+                                uenc: hyva.getUenc(),
+                                customer_id: (config.customerId || ''),
+                                quote_id: cartSection.cartId
                             });
                             
                             return window.fetch(postUrl, {
@@ -165,7 +157,11 @@ $uniqueId   = '_' . uniqid();
                                 "credentials": "include"
                             })
                             .then(response => {                                
-                                if (response.ok) {
+                                if (response.redirected) {
+                                    window.location.href = response.url;
+                                } else if (response.ok) {
+                                    return response.json();
+                                } else if (response.success) {
                                     return response.json();
                                 } else {
                                     window.dispatchMessages && window.dispatchMessages([{
@@ -174,6 +170,7 @@ $uniqueId   = '_' . uniqid();
                                     }]);
                                     this.isLoading = false;
                                 }
+                                return
                             })    
                             .then(result => {
                                 if (result.success) {
