@@ -19,8 +19,8 @@ $widgetJson = json_encode($widgetData['Magento_Paypal/js/in-context/product-expr
 
 $uniqueId   = '_' . uniqid();
 ?>
-<div x-intersect.once="checkAndInitializeButtons()"
-     x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
+
+<div x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
      @private-content-loaded.window="getData($event.detail.data)"
      class="min-h-[42px]">
     <div x-ref="paypalInContextProduct"
@@ -33,8 +33,10 @@ $uniqueId   = '_' . uniqid();
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             customerSection: {},
             cartSection: false,
+            isLoading: false,
             actions: {},
             alreadyLoaded: false,
+            /*externalScriptsLoaded: false,*/
             getData(data) {
                 // When dynamic content related to the cart is loaded, update cartSection data
                 if (data.customer) {
@@ -42,39 +44,46 @@ $uniqueId   = '_' . uniqid();
                 }
                 if (data.cart) {
                     this.cartSection = data.cart;
-                }              
+                    //if (this.externalScriptsLoaded) {
+                        this.checkAndInitializeButtons()
+                    //}
+                }
             },
             initializePayPalScript() {
-                // Dynamically injects the PayPal script into the page and resolves with the PayPal object once loaded
-                return new Promise((resolve, reject) => {
-                    const scriptId = 'paypal-script';
-                    const config = this.clientConfig;
-                    
-                    let paypalScript = document.getElementById(scriptId);
-                    if (paypalScript) {
-                        return resolve(window.paypal);
-                    }
+                if (!window.paypalScriptPromise) {
+                    window.paypalScriptPromise = new Promise((resolve, reject) => {
+                        const scriptId = 'paypal-script';
 
-                    const script = document.createElement('script');
-                    script.src = config.sdkUrl;
-                    script.id = scriptId;
-                    script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
+                        let paypalScript = document.getElementById(scriptId);
+                        if (paypalScript) {
+                            if (window.paypal) {
+                                resolve(window.paypal);
+                            } else {
+                                paypalScript.addEventListener('load', () => resolve(window.paypal), { once: true });
+                                paypalScript.addEventListener('error', () => reject(new Error('PayPal SDK could not be loaded')), { once: true });
+                            }
+                            return;
+                        }
 
-                    script.addEventListener('load', function() {
-                        resolve(window.paypal);
-                    }, false);
+                        const config = this.clientConfig;
+                        const script = document.createElement('script');
+                        script.src = config.sdkUrl;
+                        script.id = scriptId;
+                        script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
 
-                    script.addEventListener('error', function() {
-                        reject(new Error('PayPal SDK could not be loaded'));
-                    }, false);
+                        document.body.appendChild(script);
 
-                    document.body.appendChild(script);
-                })
+                        script.onload = () => resolve(window.paypal);
+                        script.onerror = () => reject(new Error('PayPal SDK could not be loaded'));
+                    });
+                }
+
+                return window.paypalScriptPromise;
             },
             async initializeButtons() {
                 try {
                     await this.initializePayPalScript();
-
+                    
                     const paypal = window.paypal;
                     const getCookie = this.getCookie;
                     const config = this.clientConfig;
@@ -84,15 +93,101 @@ $uniqueId   = '_' . uniqid();
                         style: {
                             ...config.styles,
                             height: 42, // Sets the style.height option to a value from 25 to 55.
-                            disableMaxWidth: false, // The button has a default maximum width of 750px, but you can make the button larger with true and set container size
+                            disableMaxWidth: false, // The button has a default maximum width of 750px
                             tagline: false // Set the style.layout to horizontal for taglines.
                         },
                         onInit: (data, actions) => {
                             this.actions = actions || this.actions;
                         },
-                        onClick: async (data, actions) => {
-                            // Handles the button add to cart
-                            console.warn("onClick");
+                        onClick(data, actions) {
+                            this.isLoading = true;
+                            
+                            // Get form data
+                            const form = document.getElementById('product_addtocart_form');
+                            const formData = new FormData(form);
+                            
+                            let params = "";
+                            for (let [key, value] of formData.entries()) {
+                                if (params !== "") {
+                                    params += "&";
+                                }
+                                params += `${key}=${encodeURIComponent(value)}`;
+                            }
+                            console.error("cartSection", cartSection);
+                            
+                            
+                            const formKey = hyva.getFormKey();
+                            // Get product value and qty input element
+                            
+                            const productValue = formData.get('product');
+                            const qtyInput = document.getElementById('qty[' + productValue + ']');
+                            
+                            let postUrl;
+                            let qtyValue;
+
+                            const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
+
+                            if (existingItemIndex !== -1) {
+                                const existingItem = cartSection.items[existingItemIndex];
+                                postUrl = `${BASE_URL}checkout/cart/updateItemQty/`;
+                                qtyValue = 5;
+                            } else {
+                                postUrl = `${BASE_URL}checkout/cart/add/`;
+                                qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
+                            }
+
+                            const paramsData = new URLSearchParams({
+                                form_key: formKey,
+                                product: productValue,
+                                qty: qtyValue,
+                                uenc: hyva.getUenc()
+                            });
+                            
+                            return window.fetch(postUrl, {
+                                "headers": {
+                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                },
+                                "body": paramsData.toString(),
+                                "method": "POST",
+                                "mode": "cors",
+                                "credentials": "include"
+                            })
+                            .then(data => {
+                                console.warn('response.data' + data.json());
+                                return data.json()
+                            })
+                            .then(response => {
+                                console.warn(response);
+                                if (response.success) {
+                                    return response.json();
+                                }
+
+                                throw new Error(response['error_message']);
+                                
+                                /*if (response.ok) {
+                                    console.warn('response.json' + response.json());
+                                    return response.json();
+                                } else {
+                                    window.dispatchMessages && window.dispatchMessages([{
+                                        type: 'warning',
+                                        text: '<?//= $escaper->escapeJs(__('Could not update item from quote.')) ?>'
+                                    }]);
+                                    this.isLoading = false;
+                                }*/
+                            }).then(result => {
+                                console.warn('result' + result);
+                                window.dispatchMessages && window.dispatchMessages([{
+                                    type: result.success ? 'success' : 'error',
+                                    text: result.success
+                                        ? '<?= $escaper->escapeJs(__('You updated the item.')) ?>'
+                                        : result.error_message
+                                }], result.success ? 5000 : 0)
+                                window.dispatchEvent(new CustomEvent('reload-customer-section-data'));
+                            }).finally(() => {
+                                console.warn("done");
+                                this.isLoading = false;
+                            });
+                            
                         },
                         createOrder() {
                             // Retrieves full order details
@@ -129,27 +224,29 @@ $uniqueId   = '_' . uniqid();
 
                             // Processes the approved payment
                             return window.fetch(config.onAuthorizeUrl, {
-                                    "headers": {
-                                        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                    },
-                                    "body": params,
-                                    "method": "POST",
-                                    "mode": "cors",
-                                    "credentials": "include"
-                                })
-                                .then(data => {
-                                    return data.json()
-                                }).then(response => {
-                                    if (response.success) {
-                                        return actions.redirect(response.redirectUrl);
-                                    }
+                                "headers": {
+                                    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                },
+                                "body": params,
+                                "method": "POST",
+                                "mode": "cors",
+                                "credentials": "include"
+                            })
+                            .then(data => {
+                                return data.json()
+                            })
+                            .then(response => {
+                                if (response.success) {
+                                    return actions.redirect(response.redirectUrl);
+                                }
 
-                                    throw new Error(response['error_message']);
-                                })
-                                .catch((error) => console.log(error)).finally(() => {
-                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
-                                    window.dispatchEvent(reloadCustomerDataEvent);
-                                });
+                                throw new Error(response['error_message']);
+                            })
+                            .catch((error) => console.log(error))
+                            .finally(() => {
+                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                window.dispatchEvent(reloadCustomerDataEvent);
+                            });
                         },
                         onCancel(data, actions) {
                             // No changes as should remain on the same page
@@ -167,24 +264,24 @@ $uniqueId   = '_' . uniqid();
                 if (!form) {
                     return;
                 }
-
-                // Checks cart section data and initializes buttons if not already done
-                if (this.cartSection.items && this.cartSection.items.length && !this.alreadyLoaded) {
-                    this.initializeButtons();
-                    this.alreadyLoaded = true;
+                if (this.cartSection && !this.alreadyLoaded) {
+                    this.initializeButtons().then(() => {
+                        this.alreadyLoaded = true;
+                    });
+                } else {
+                    return;
                 }
             },
             getCookie(name) {
                 // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
                 return v ? v[2] : null;
-            },
+            }/*,
             init() {
-                // Sets up event listeners
                 window.addEventListener('init-external-scripts', () => {
-                    this.checkAndInitializeButtons()
-                }, { once: true });
-            }
+                    this.externalScriptsLoaded = true;
+                });
+            }*/
         }
     }
 </script>
