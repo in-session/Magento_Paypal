@@ -52,7 +52,6 @@ $uniqueId = '_' . uniqid();
                  * @type {Object|boolean}
                  */
                 alreadyLoaded: false, 
-                /*externalScriptsLoaded: false,*/
                 
                 /**
                  * Handles the event when dynamic content related to the cart is loaded.
@@ -63,9 +62,7 @@ $uniqueId = '_' . uniqid();
                 getData(data) {
                     if (data.cart) {
                         this.cartSection = data.cart;
-                        //if (this.externalScriptsLoaded) {
-                            this.checkAndInitializeButtons()
-                        //}
+                        this.checkAndInitializeButtons();
                     }
                 },
                     
@@ -157,16 +154,7 @@ $uniqueId = '_' . uniqid();
                     } else {
                         return;
                     }
-                }//,
-                    
-                /**
-                 * Initialization method that sets up event listeners for the module.
-                 */
-                /*init() {
-                    window.addEventListener('init-external-scripts', () => {
-                        this.externalScriptsLoaded = true;
-                    });
-                }*/
+                }
             };
         }
     </script>
