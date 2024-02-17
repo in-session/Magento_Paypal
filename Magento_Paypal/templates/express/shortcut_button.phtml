@@ -28,6 +28,11 @@ $uniqueId   = '_' . uniqid();
     </div>
 </div>
 <script>
+    /**
+     * Initializes PayPal In-Context functionality with configuration derived from the server.
+     *
+     * @returns {Object} A configuration object containing methods for PayPal SDK initialization and event handling.
+     */
     function initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
         return {
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
@@ -36,6 +41,11 @@ $uniqueId   = '_' . uniqid();
             isLoading: false,
             actions: {},
             alreadyLoaded: false,
+            /**
+             * Handles updates to cart or customer data.
+             *
+             * @param {Object} data The data containing updates for customer or cart sections.
+             */    
             getData(data) {
                 if (data.customer) {
                     this.customerSection = data.customer;
@@ -45,6 +55,11 @@ $uniqueId   = '_' . uniqid();
                     this.checkAndInitializeButtons()
                 }
             },
+            /**
+             * Dynamically loads the PayPal SDK and initializes PayPal buttons.
+             *
+             * @returns {Promise} A promise that resolves when the PayPal SDK is loaded and ready.
+             */    
             initializePayPalScript() {
                 if (!window.paypalScriptPromise) {
                     window.paypalScriptPromise = new Promise((resolve, reject) => {
@@ -76,6 +91,9 @@ $uniqueId   = '_' . uniqid();
 
                 return window.paypalScriptPromise;
             },
+            /**
+             * Asynchronously initializes PayPal buttons using the loaded PayPal SDK.
+             */    
             async initializeButtons() {
                 try {
                     await this.initializePayPalScript();
@@ -241,6 +259,9 @@ $uniqueId   = '_' . uniqid();
                     console.error("Error loading PayPal SDK: ", error);
                 }
             },
+            /**
+             * Checks if the PayPal buttons should be initialized based on current data and state.
+             */
             checkAndInitializeButtons() {
                 const form = document.getElementById('product_addtocart_form');
                 if (!form) {
@@ -254,6 +275,12 @@ $uniqueId   = '_' . uniqid();
                     return;
                 }
             },
+            /**
+             * Retrieves a cookie value by its name.
+             *
+             * @param {string} name The name of the cookie to retrieve.
+             * @returns {string|null} The value of the cookie, or null if not found.
+             */
             getCookie(name) {
                 // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
