@@ -21,7 +21,6 @@ $widgetConfigJson = json_encode($widgetData['components']['payLater']['config'])
 
 $uniqueId = '_' . uniqid();
 ?>
-
 <?php $cartBlock = $block->getLayout()->getBlock('checkout.cart'); ?>
 <?php if ($block->getData('placement') !== 'cart' || is_object($cartBlock) && $cartBlock->getItemsCount()): ?>
     <div x-intersect.once="checkAndInitializeButtons()"
@@ -53,6 +52,7 @@ $uniqueId = '_' . uniqid();
                  * @type {Object|boolean}
                  */
                 alreadyLoaded: false, 
+                /*externalScriptsLoaded: false,*/
                 
                 /**
                  * Handles the event when dynamic content related to the cart is loaded.
@@ -63,6 +63,9 @@ $uniqueId = '_' . uniqid();
                 getData(data) {
                     if (data.cart) {
                         this.cartSection = data.cart;
+                        //if (this.externalScriptsLoaded) {
+                            this.checkAndInitializeButtons()
+                        //}
                     }
                 },
                     
@@ -73,30 +76,35 @@ $uniqueId = '_' . uniqid();
                  * @returns {Promise<Object>} A promise that resolves with the PayPal object.
                  */
                 initializePayPalScript() {
-                    return new Promise((resolve, reject) => {
-                        const scriptId = 'paypal-script';
-                        const config = this.clientConfig;
-                        
-                        let paypalScript = document.getElementById(scriptId);
-                        if (paypalScript) {
-                            return resolve(window.paypal);
-                        }
+                    if (!window.paypalScriptPromise) {
+                        window.paypalScriptPromise = new Promise((resolve, reject) => {
+                            const scriptId = 'paypal-script';
 
-                        const script = document.createElement('script');
-                        script.src = config.sdkUrl;
-                        script.id = scriptId;
-                        script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
+                            let paypalScript = document.getElementById(scriptId);
+                            if (paypalScript) {
+                                if (window.paypal) {
+                                    resolve(window.paypal);
+                                } else {
+                                    paypalScript.addEventListener('load', () => resolve(window.paypal), { once: true });
+                                    paypalScript.addEventListener('error', () => reject(new Error('PayPal SDK could not be loaded')), { once: true });
+                                }
+                                return;
+                            }
 
-                        script.addEventListener('load', function() {
-                            resolve(window.paypal);
-                        }, false);
+                            const config = this.clientConfig;
 
-                        script.addEventListener('error', function() {
-                            reject(new Error('PayPal SDK could not be loaded'));
-                        }, false);
+                            const script = document.createElement('script');
+                            script.src = config.sdkUrl;
+                            script.id = scriptId;
+                            script.setAttribute('data-partner-attribution-id', config.dataAttributes['data-partner-attribution-id']);
 
-                        document.body.appendChild(script);
-                    });
+                            document.body.appendChild(script);
+
+                            script.onload = () => resolve(window.paypal);
+                            script.onerror = () => reject(new Error('PayPal SDK could not be loaded'));
+                        });
+                    }
+                    return window.paypalScriptPromise;
                 },
                     
                 /**
@@ -143,21 +151,22 @@ $uniqueId = '_' . uniqid();
                     }
                     
                     if (this.cartSection.items && this.cartSection.items.length && !this.alreadyLoaded) {
-                        this.initializeButtons();
-                        this.alreadyLoaded = true;
+                        this.initializeButtons().then(() => {
+                            this.alreadyLoaded = true;
+                        });
                     } else {
                         return;
                     }
-                },
+                }//,
                     
                 /**
                  * Initialization method that sets up event listeners for the module.
                  */
-                init() {
+                /*init() {
                     window.addEventListener('init-external-scripts', () => {
-                        this.checkAndInitializeButtons();
-                    }, { once: true });
-                }
+                        this.externalScriptsLoaded = true;
+                    });
+                }*/
             };
         }
     </script>
