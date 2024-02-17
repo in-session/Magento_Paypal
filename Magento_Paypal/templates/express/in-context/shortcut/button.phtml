@@ -108,20 +108,14 @@ $uniqueId   = '_' . uniqid();
                             this.actions = actions || this.actions;
                         },
                         onClick: async (data, actions) => {
-                            // Handles the button add to cart
-                            console.warn("onClick");
+                            this.actions = actions || this.actions;
                         },
                         createOrder() {
-                            // Retrieves full order details
-                            console.warn("createOrder");
-
-                            // Prepares parameters for the order
                             const params = "quote_id=" + config.quoteId +
                                 "&customer_id=" + (config.customerId ? config.customerId : '') +
                                 "&form_key=" + (getCookie('form_key') || '') +
                                 "&button=" + config.button;
 
-                            // Sends a request to create the order
                             return window.fetch(config.getTokenUrl, {
                                     "headers": {
                                         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -137,14 +131,12 @@ $uniqueId   = '_' . uniqid();
                         },
 
                         onApprove(data, actions) {
-                            // Handles the approval of the payment
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
                                 "&quoteId=" + (config.quoteId || '') +
                                 "&customerId=" + (config.customerId || '') +
                                 "&form_key=" + (getCookie('form_key') || '');
 
-                            // Processes the approved payment
                             return window.fetch(config.onAuthorizeUrl, {
                                     "headers": {
                                         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -193,10 +185,7 @@ $uniqueId   = '_' . uniqid();
                 // Retrieves a cookie value by name
                 const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
                 return v ? v[2] : null;
-            }<?php /*?>,
-            init() {
-                this.checkAndInitializeButtons();
-            }<?php */?>
+            }
         }
     }
 </script>
