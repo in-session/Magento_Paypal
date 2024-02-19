@@ -127,9 +127,9 @@ $uniqueId   = '_' . uniqid();
 
                             // Iterate over all key-value pairs in the FormData object
                             for (let [key, value] of formData.entries()) {
-                               if (key !== 'form_key') {
+                               if (key !== 'form_key' || key !== 'qty') {
                                     formDataParams[key] = value;
-                                }
+                               }
                             }
                             // Get product value and qty input element                            
                             const productValue = formData.get('product');
