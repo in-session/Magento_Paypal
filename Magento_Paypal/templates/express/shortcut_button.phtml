@@ -131,10 +131,7 @@ $uniqueId   = '_' . uniqid();
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
                                 product: productValue,
-                                item_id: itemId//,
-                                //uenc: hyva.getUenc(),
-                                //customer_id: (config.customerId || ''),
-                                //quote_id: cartSection.cartId
+                                item_id: itemId
                             });                            
                             
                             if (existingItemIndex !== -1) {
