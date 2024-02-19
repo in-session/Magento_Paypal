@@ -77,7 +77,7 @@ $uniqueId = '_' . uniqid();
                         window.paypalScriptPromise = new Promise((resolve, reject) => {
                             const scriptId = 'paypal-script';
 
-                            let paypalScript = document.getElementById(scriptId);
+                            const paypalScript = document.querySelector('#' + scriptId);
                             if (paypalScript) {
                                 if (window.paypal) {
                                     resolve(window.paypal);
@@ -142,7 +142,7 @@ $uniqueId = '_' . uniqid();
                  * Check and initialize
                  */    
                 checkAndInitializeButtons() {                    
-                    const form = document.getElementById('product_addtocart_form');
+                    const form = document.querySelector('#product_addtocart_form');
                     if (!form) {
                         return;
                     }
