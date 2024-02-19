@@ -114,6 +114,8 @@ $uniqueId   = '_' . uniqid();
                         },
                         onClick(data, actions) {
                             
+                            const postUrl = `${BASE_URL}checkout/cart/add/`; 
+                            
                             // Get form data
                             const form = document.querySelector('#product_addtocart_form');
                             const formData = new FormData(form);
@@ -126,22 +128,23 @@ $uniqueId   = '_' . uniqid();
                             // change qty base on card and input
                             let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
                             
-                            const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
-
-                            const paramsData = new URLSearchParams({
-                                form_key: (getCookie('form_key') || ''),
-                                product: productValue,
-                                item_id: itemId
-                            });                            
-                            
+                            //check if item allready in cart
+                            const existingItemIndex = cartSection.items.findIndex(item => 
+                                item.product_id === productValue && item.itemId === itemId
+                            );
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
                                 qtyValue += existingItem.qty;
                             }
                             
-                            postUrl = `${BASE_URL}checkout/cart/add/`; 
-                            paramsData.append('qty', qtyValue); 
-                            paramsData.append('isAjax', 'true');
+                            // prepare body
+                            const paramsData = new URLSearchParams({
+                                form_key: (getCookie('form_key') || ''),
+                                product: productValue,
+                                item_id: itemId,
+                                qty: qtyValue,
+                                isAjax: true
+                            });
                             
                             return window.fetch(postUrl, {
                                 "headers": {
@@ -155,8 +158,6 @@ $uniqueId   = '_' . uniqid();
                             .then(response => {
                                 if (response.ok) {
                                     return response.json();
-                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
-                                    window.dispatchEvent(reloadCustomerDataEvent);
                                 } else {
                                     return window.dispatchMessages && window.dispatchMessages([{
                                         type: 'error',
@@ -164,14 +165,10 @@ $uniqueId   = '_' . uniqid();
                                     }]);
                                 }
                             })
-                            .catch(error => {
-                                window.dispatchMessages && window.dispatchMessages([{
-                                    type: 'error',
-                                    text: error.message || 'An error occurred during the update process'
-                                }]);
-                            })
+                            .catch((error) => console.log(error))
                             .finally(() => {
-
+                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                window.dispatchEvent(reloadCustomerDataEvent);
                             });                            
                         },
                         createOrder() {
@@ -193,7 +190,6 @@ $uniqueId   = '_' . uniqid();
                             .then(data => data.token)
                             .catch((error) => console.log(error));
                         },
-
                         onApprove(data, actions) {
                             const params = "paymentToken=" + (data.orderID || '') +
                                 "&payerId=" + (data.payerID || '') +
@@ -226,7 +222,9 @@ $uniqueId   = '_' . uniqid();
                                 window.dispatchEvent(reloadCustomerDataEvent);
                             });
                         },
+                        
                         onCancel(data, actions) {
+                            // reload data because of add to cart
                             const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
                             window.dispatchEvent(reloadCustomerDataEvent);
                         },
