@@ -171,21 +171,14 @@ $uniqueId   = '_' . uniqid();
                                 }
                             })    
                             .then(result => {
-                                console.log('Processing result');
-                                if (result.success) {
-                                    console.log('Operation was successful:', result);
-                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
                                     window.dispatchEvent(reloadCustomerDataEvent);
-                                } else {
-                                    console.log('Operation was not successful:', result.error_message || 'Unknown error occurred');
-                                    throw new Error(result.error_message);
-                                }
                             })
                             .catch(error => {
                                 console.log('Caught an error:', error.message);
                                 window.dispatchMessages && window.dispatchMessages([{
                                     type: 'error',
-                                    text: error.message || 'An error occurred during the update process'
+                                    text: error.message
                                 }]);
                             })
                             .finally(() => {
