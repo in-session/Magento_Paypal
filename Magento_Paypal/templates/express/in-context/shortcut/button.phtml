@@ -76,7 +76,7 @@ $uniqueId   = '_' . uniqid();
                     window.paypalScriptPromise = new Promise((resolve, reject) => {
                         const scriptId = 'paypal-script';
 
-                        let paypalScript = document.getElementById(scriptId);
+                        const paypalScript = document.querySelector('#' + scriptId);
                         if (paypalScript) {
                             if (window.paypal) {
                                 resolve(window.paypal);
