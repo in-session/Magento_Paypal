@@ -101,7 +101,7 @@ $uniqueId   = '_' . uniqid();
                     const getCookie = this.getCookie;
                     const config = this.clientConfig;
                     const cartSection = this.cartSection;
-
+                    
                     paypal && paypal.Buttons({
                         style: {
                             ...config.styles,
@@ -113,6 +113,9 @@ $uniqueId   = '_' . uniqid();
                             this.actions = actions || this.actions;
                         },
                         onClick(data, actions) {
+                            
+                            // to do
+                            // need to reload cart data onece changes on cart
                             
                             const postUrl = `${BASE_URL}checkout/cart/add/`; 
                             
@@ -129,14 +132,15 @@ $uniqueId   = '_' . uniqid();
                             for (let [key, value] of formData.entries()) {
                                formDataParams[key] = value;
                             }
-                            
-                            // change qty base on card and input
-                            let qtyValue = parseInt(formDataParams['qty'], 10) || 1;
-                            
-                            //check if item allready in cart
-                            const existingItemIndex = cartSection.items.findIndex(item => 
-                                item.product_id === formDataParams['product']
+
+                            const productValue = formDataParams['product'];
+                            const qtyInput = document.getElementById('qty[' + productValue + ']');
+                            let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
+
+                            const existingItemIndex = cartSection.items.findIndex(item =>
+                                item.product_id === productValue
                             );
+
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
                                 qtyValue += existingItem.qty;
