@@ -227,7 +227,8 @@ $uniqueId   = '_' . uniqid();
                             });
                         },
                         onCancel(data, actions) {
-                            // No changes as should remain on the same page
+                            const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                            window.dispatchEvent(reloadCustomerDataEvent);
                         },
                         onError(err) {
                             // window.location.href = config.onCancelUrl;
