@@ -118,6 +118,10 @@ $uniqueId   = '_' . uniqid();
                             
                             // Get form data
                             const form = document.querySelector('#product_addtocart_form');
+                            if (!form.reportValidity()) {
+                                return;
+                            }
+
                             const formData = new FormData(form);
                                                      
                             // Get product value and qty input element                            
