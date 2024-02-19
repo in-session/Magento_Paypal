@@ -128,27 +128,33 @@ $uniqueId   = '_' . uniqid();
                             // Switch Post Url and change qty base on card and input
                             let postUrl;
                             let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
+                            
                             const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
 
-                            /*if (existingItemIndex !== -1) {
+                            const paramsData = new URLSearchParams({
+                                form_key: (getCookie('form_key') || '')
+                            });                            
+                            
+                            if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
-                                postUrl = `${BASE_URL}checkout/cart/updateItemQty/`;
                                 qtyValue += existingItem.qty;
-                            } else {*/
+                                
+                                let cartData = {
+                                    [itemId]: { qty: qtyValue }
+                                };                                
+                                postUrl = `${BASE_URL}checkout/cart/updateItemQty/`;                                
+                                paramsData.append('update_cart_action', 'update_qty');
+                                paramsData.append('cart', JSON.stringify(cartData));
+                            } else {
                                postUrl = `${BASE_URL}checkout/cart/add/`; 
-                            //}
+                               paramsData.append('qty', qtyValue);
+                               paramsData.append('isAjax', 'true');
+                            }
                             console.log('Product value:', productValue, 'Item ID:', itemId, 'Quantity:', qtyInput ? qtyInput.value : 'Not Found');
 
-                            const paramsData = new URLSearchParams({
-                                form_key: (getCookie('form_key') || ''),
-                                product: productValue,
-                                item_id: itemId,
-                                qty: qtyValue,
-                                uenc: hyva.getUenc(),
-                                quote_id: cartSection.cartId
-                            });
                             
-                            paramsData.append('isAjax', 'true');
+                            
+                            
                             
                             console.log('Parameters for fetch:', paramsData.toString());
                             return window.fetch(postUrl, {
@@ -178,7 +184,7 @@ $uniqueId   = '_' . uniqid();
                                     window.dispatchEvent(reloadCustomerDataEvent);
                                 } else {
                                     console.log('Operation was not successful:', result.error_message || 'Unknown error occurred');
-                                    throw new Error(result.error_message || 'Unknown error occurred');
+                                    throw new Error(result.error_message);
                                 }
                             })
                             .catch(error => {
