@@ -117,7 +117,7 @@ $uniqueId   = '_' . uniqid();
                             this.isLoading = true;
                             
                             // Get form data
-                            const form = document.getElementById('product_addtocart_form');
+                            const form = document.querySelector('#product_addtocart_form');
                             const formData = new FormData(form);
                                                      
                             // Get product value and qty input element                            
@@ -130,13 +130,14 @@ $uniqueId   = '_' . uniqid();
                             let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
                             const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
 
-                            if (existingItemIndex !== -1) {
+                            /*if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
                                 postUrl = `${BASE_URL}checkout/cart/updateItemQty/`;
                                 qtyValue += existingItem.qty;
-                            } else {
-                                postUrl = `${BASE_URL}checkout/cart/add/`;
-                            }
+                            } else {*/
+                               postUrl = `${BASE_URL}checkout/cart/add/`; 
+                            //}
+                            console.log('Product value:', productValue, 'Item ID:', itemId, 'Quantity:', qtyInput ? qtyInput.value : 'Not Found');
 
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
@@ -144,10 +145,12 @@ $uniqueId   = '_' . uniqid();
                                 item_id: itemId,
                                 qty: qtyValue,
                                 uenc: hyva.getUenc(),
-                                customer_id: (config.customerId || ''),
                                 quote_id: cartSection.cartId
                             });
                             
+                            paramsData.append('isAjax', 'true');
+                            
+                            console.log('Parameters for fetch:', paramsData.toString());
                             return window.fetch(postUrl, {
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -157,36 +160,32 @@ $uniqueId   = '_' . uniqid();
                                 "mode": "cors",
                                 "credentials": "include"
                             })
-                            .then(response => {                                
-                                if (response.redirected) {
-                                    window.location.href = response.url;
-                                } else if (response.ok) {
-                                    return response.json();
-                                } else if (response.success) {
+                            .then(response => {
+                                console.log('Fetch response received');
+                                if (response.ok) {
+                                    console.log('Fetch response was ok');
                                     return response.json();
                                 } else {
-                                    window.dispatchMessages && window.dispatchMessages([{
-                                        type: 'warning',
-                                        text: '<?= $escaper->escapeJs(__('Could not update item from quote.')) ?>'
-                                    }]);
-                                    this.isLoading = false;
+                                    console.log('Fetch response was not ok:', response.statusText);
+                                    return Promise.reject(new Error('Failed to update item'));
                                 }
-                                return
                             })    
                             .then(result => {
+                                console.log('Processing result');
                                 if (result.success) {
-                                    window.dispatchMessages && window.dispatchMessages([{
-                                        type: 'success',
-                                        text: 'You updated the item.'
-                                    }]);
+                                    console.log('Operation was successful:', result);
+                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                    window.dispatchEvent(reloadCustomerDataEvent);
                                 } else {
+                                    console.log('Operation was not successful:', result.error_message || 'Unknown error occurred');
                                     throw new Error(result.error_message || 'Unknown error occurred');
                                 }
                             })
                             .catch(error => {
+                                console.log('Caught an error:', error.message);
                                 window.dispatchMessages && window.dispatchMessages([{
                                     type: 'error',
-                                    text: error.message
+                                    text: error.message || 'An error occurred during the update process'
                                 }]);
                             })
                             .finally(() => {
