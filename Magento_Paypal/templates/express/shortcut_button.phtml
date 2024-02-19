@@ -123,10 +123,16 @@ $uniqueId   = '_' . uniqid();
                             }
 
                             const formData = new FormData(form);
-                                                     
+                            const formDataParams = {};
+
+                            // Iterate over all key-value pairs in the FormData object
+                            for (let [key, value] of formData.entries()) {
+                               if (key !== 'form_key') {
+                                    formDataParams[key] = value;
+                                }
+                            }
                             // Get product value and qty input element                            
                             const productValue = formData.get('product');
-                            const itemId = formData.get('item');
                             const qtyInput = document.getElementById('qty[' + productValue + ']');
                             
                             // change qty base on card and input
@@ -144,10 +150,13 @@ $uniqueId   = '_' . uniqid();
                             // prepare body
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
-                                product: productValue,
                                 qty: qtyValue,
                                 isAjax: true
-                            });
+                            });                            
+                            
+                            for (const [key, value] of formData.entries()) {
+                                paramsData.append(key, value);
+                            }
                             
                             return window.fetch(postUrl, {
                                 "headers": {
