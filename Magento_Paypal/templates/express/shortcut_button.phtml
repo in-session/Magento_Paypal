@@ -127,9 +127,7 @@ $uniqueId   = '_' . uniqid();
 
                             // Iterate over all key-value pairs in the FormData object
                             for (let [key, value] of formData.entries()) {
-                               if (key !== 'form_key' || key !== 'qty') {
-                                    formDataParams[key] = value;
-                               }
+                               formDataParams[key] = value;
                             }
                             // Get product value and qty input element                            
                             const productValue = formData.get('product');
@@ -153,9 +151,12 @@ $uniqueId   = '_' . uniqid();
                                 qty: qtyValue,
                                 isAjax: true
                             });                            
-                            
-                            for (const [key, value] of formData.entries()) {
-                                paramsData.append(key, value);
+
+                            // Optionally append other form data as needed
+                            for (const [key, value] of Object.entries(formDataParams)) {
+                                if (!paramsData.has(key)) { // Prevent duplicating form_key and qty
+                                    paramsData.append(key, value);
+                                }
                             }
                             
                             return window.fetch(postUrl, {
@@ -239,9 +240,17 @@ $uniqueId   = '_' . uniqid();
                             // reload data because of add to cart
                             const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
                             window.dispatchEvent(reloadCustomerDataEvent);
+                            
+                            return window.dispatchMessages && window.dispatchMessages([{
+                                type: 'error',
+                                text: 'Express Checkout has been canceled.'
+                            }]);
                         },
                         onError(err) {
-                            // window.location.href = config.onCancelUrl;
+                            return window.dispatchMessages && window.dispatchMessages([{
+                                type: 'error',
+                                text: "We can't initialize Express Checkout."
+                            }]);
                         }
                     }).render(this.$refs.paypalInContextProduct);
                 } catch (error) {
