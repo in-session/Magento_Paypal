@@ -125,8 +125,7 @@ $uniqueId   = '_' . uniqid();
                             const itemId = formData.get('item');
                             const qtyInput = document.getElementById('qty[' + productValue + ']');
                             
-                            // Switch Post Url and change qty base on card and input
-                            let postUrl;
+                            // change qty base on card and input
                             let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
                             
                             const existingItemIndex = cartSection.items.findIndex(item => item.product_id === productValue);
@@ -134,10 +133,10 @@ $uniqueId   = '_' . uniqid();
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
                                 product: productValue,
-                                item_id: itemId,
-                                uenc: hyva.getUenc(),
-                                customer_id: (config.customerId || ''),
-                                quote_id: cartSection.cartId
+                                item_id: itemId//,
+                                //uenc: hyva.getUenc(),
+                                //customer_id: (config.customerId || ''),
+                                //quote_id: cartSection.cartId
                             });                            
                             
                             if (existingItemIndex !== -1) {
@@ -149,8 +148,6 @@ $uniqueId   = '_' . uniqid();
                             paramsData.append('qty', qtyValue); 
                             paramsData.append('isAjax', 'true');
                             
-                            console.log('Product value:', productValue, 'Item ID:', itemId, 'Quantity:', qtyValue);  
-                            console.log('Parameters for fetch:', paramsData.toString());
                             return window.fetch(postUrl, {
                                 "headers": {
                                     "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -161,30 +158,26 @@ $uniqueId   = '_' . uniqid();
                                 "credentials": "include"
                             })
                             .then(response => {
-                                console.log('Fetch response received');
                                 if (response.ok) {
-                                    console.log('Fetch response was ok');
                                     return response.json();
-                                } else {
-                                    console.log('Fetch response was not ok:', response.statusText);
-                                    return Promise.reject(new Error('Failed to update item'));
-                                }
-                            })    
-                            .then(result => {
-                                const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
+                                    const reloadCustomerDataEvent = new CustomEvent("reload-customer-section-data");
                                     window.dispatchEvent(reloadCustomerDataEvent);
+                                } else {
+                                    return window.dispatchMessages && window.dispatchMessages([{
+                                        type: 'error',
+                                        text: response.statusText || 'An error occurred during the update process'
+                                    }]);
+                                }
                             })
                             .catch(error => {
-                                console.log('Caught an error:', error.message);
                                 window.dispatchMessages && window.dispatchMessages([{
                                     type: 'error',
-                                    text: error.message
+                                    text: error.message || 'An error occurred during the update process'
                                 }]);
                             })
                             .finally(() => {
                                 this.isLoading = false;
-                            });
-                            
+                            });                            
                         },
                         createOrder() {
                             const params = "quote_id=" + cartSection.cartId +
