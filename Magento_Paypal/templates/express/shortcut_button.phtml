@@ -129,16 +129,13 @@ $uniqueId   = '_' . uniqid();
                             for (let [key, value] of formData.entries()) {
                                formDataParams[key] = value;
                             }
-                            // Get product value and qty input element                            
-                            const productValue = formData.get('product');
-                            const qtyInput = document.getElementById('qty[' + productValue + ']');
                             
                             // change qty base on card and input
-                            let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
+                            let qtyValue = parseInt(formDataParams['qty'], 10) || 1;
                             
                             //check if item allready in cart
                             const existingItemIndex = cartSection.items.findIndex(item => 
-                                item.product_id === productValue
+                                item.product_id === formDataParams['product']
                             );
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
