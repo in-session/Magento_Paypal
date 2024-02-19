@@ -130,7 +130,7 @@ $uniqueId   = '_' . uniqid();
                             
                             //check if item allready in cart
                             const existingItemIndex = cartSection.items.findIndex(item => 
-                                item.product_id === productValue && item.itemId === itemId
+                                item.product_id === productValue
                             );
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
@@ -141,7 +141,6 @@ $uniqueId   = '_' . uniqid();
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
                                 product: productValue,
-                                item_id: itemId,
                                 qty: qtyValue,
                                 isAjax: true
                             });
