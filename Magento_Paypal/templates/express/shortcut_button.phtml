@@ -38,7 +38,6 @@ $uniqueId   = '_' . uniqid();
             clientConfig: <?= /** @noEscape */ $widgetJson ?>.clientConfig,
             customerSection: {},
             cartSection: false,
-            isLoading: false,
             actions: {},
             alreadyLoaded: false,
             /**
@@ -114,7 +113,6 @@ $uniqueId   = '_' . uniqid();
                             this.actions = actions || this.actions;
                         },
                         onClick(data, actions) {
-                            this.isLoading = true;
                             
                             // Get form data
                             const form = document.querySelector('#product_addtocart_form');
@@ -176,7 +174,7 @@ $uniqueId   = '_' . uniqid();
                                 }]);
                             })
                             .finally(() => {
-                                this.isLoading = false;
+
                             });                            
                         },
                         createOrder() {
