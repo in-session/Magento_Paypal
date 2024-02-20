@@ -40,6 +40,7 @@ $uniqueId   = '_' . uniqid();
             cartSection: false,
             actions: {},
             alreadyLoaded: false,
+            cartDataUpdated: false,
             /**
              * Handles updates to cart or customer data.
              *
@@ -53,7 +54,7 @@ $uniqueId   = '_' . uniqid();
                     this.cartSection = data.cart;
                     this.checkAndInitializeButtons()
                 }
-            },
+            },  
             /**
              * Dynamically loads the PayPal SDK and initializes PayPal buttons.
              *
@@ -113,10 +114,8 @@ $uniqueId   = '_' . uniqid();
                             this.actions = actions || this.actions;
                         },
                         onClick(data, actions) {
-                            
                             // to do
-                            // need to reload cart data onece changes on cart
-                            
+                            // need to reload cart data onece changes on cart                        
                             const postUrl = `${BASE_URL}checkout/cart/add/`; 
                             
                             // Get form data
@@ -128,11 +127,11 @@ $uniqueId   = '_' . uniqid();
                             const formData = new FormData(form);
                             const formDataParams = {};
 
-                            // Iterate over all key-value pairs in the FormData object
                             for (let [key, value] of formData.entries()) {
                                formDataParams[key] = value;
                             }
-
+                            // Iterate over all key-value pairs in the FormData object
+                            /*
                             const productValue = formDataParams['product'];
                             const qtyInput = document.getElementById('qty[' + productValue + ']');
                             let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
@@ -144,12 +143,12 @@ $uniqueId   = '_' . uniqid();
                             if (existingItemIndex !== -1) {
                                 const existingItem = cartSection.items[existingItemIndex];
                                 qtyValue += existingItem.qty;
-                            }
+                            }*/
                             
                             // prepare body
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
-                                qty: qtyValue,
+                                //qty: qtyValue,
                                 isAjax: true
                             });                            
 
