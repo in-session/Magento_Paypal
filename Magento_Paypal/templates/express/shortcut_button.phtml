@@ -114,8 +114,6 @@ $uniqueId   = '_' . uniqid();
                             this.actions = actions || this.actions;
                         },
                         onClick(data, actions) {
-                            // to do
-                            // need to reload cart data onece changes on cart                        
                             const postUrl = `${BASE_URL}checkout/cart/add/`; 
                             
                             // Get form data
@@ -129,32 +127,17 @@ $uniqueId   = '_' . uniqid();
 
                             for (let [key, value] of formData.entries()) {
                                formDataParams[key] = value;
-                            }
-                            // Iterate over all key-value pairs in the FormData object
-                            /*
-                            const productValue = formDataParams['product'];
-                            const qtyInput = document.getElementById('qty[' + productValue + ']');
-                            let qtyValue = qtyInput && qtyInput.value ? parseInt(qtyInput.value, 10) : 1;
-
-                            const existingItemIndex = cartSection.items.findIndex(item =>
-                                item.product_id === productValue
-                            );
-
-                            if (existingItemIndex !== -1) {
-                                const existingItem = cartSection.items[existingItemIndex];
-                                qtyValue += existingItem.qty;
-                            }*/
-                            
+                            }                            
                             // prepare body
                             const paramsData = new URLSearchParams({
                                 form_key: (getCookie('form_key') || ''),
-                                //qty: qtyValue,
                                 isAjax: true
                             });                            
 
                             // Optionally append other form data as needed
                             for (const [key, value] of Object.entries(formDataParams)) {
-                                if (!paramsData.has(key)) { // Prevent duplicating form_key and qty
+                                if (!paramsData.has(key)) { 
+                                    // Prevent duplicating form_key
                                     paramsData.append(key, value);
                                 }
                             }
