@@ -30,7 +30,7 @@ $uniqueId   = '_' . uniqid();
      <?php else: ?>
          @private-content-loaded.window="getSectionData($event.detail.data)"
      <?php endif; ?>
-     class="paypal checkout paypal-logo min-h-[42px] <?= $escaper->escapeHtmlAttr($parentBlockName) ?>-container">
+     class="paypal checkout paypal-logo min-h-a11y <?= $escaper->escapeHtmlAttr($parentBlockName) ?>-container">
 </div>
 <script>
     function initPayPal<?= $escaper->escapeHtmlAttr($parentBlockName) ?><?= $escaper->escapeHtmlAttr($uniqueId) ?>() {
@@ -116,7 +116,7 @@ $uniqueId   = '_' . uniqid();
                     paypal && paypal.Buttons({
                         style: {
                             ...config.styles,
-                            height: 42, // Sets the style.height option to a value from 25 to 55.
+                            height: 44, // Sets the style.height option to a value from 25 to 55.
                             disableMaxWidth: false, // The button has a default maximum width of 750px, but you can make the button larger with true and set container size
                             tagline: false // Set the style.layout to horizontal for taglines.
                         },
