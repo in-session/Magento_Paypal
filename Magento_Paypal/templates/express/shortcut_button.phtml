@@ -22,7 +22,7 @@ $uniqueId   = '_' . uniqid();
 
 <div x-data="initPayPalInContext<?= $escaper->escapeHtmlAttr($uniqueId) ?>()"
      @private-content-loaded.window="getData($event.detail.data)"
-     class="min-h-[42px]">
+     class="min-h-a11y">
     <div x-ref="paypalInContextProduct"
          class="paypal checkout paypal-logo <?= $escaper->escapeHtmlAttr($block->getContainerId()) ?>-container">
     </div>
@@ -106,7 +106,7 @@ $uniqueId   = '_' . uniqid();
                     paypal && paypal.Buttons({
                         style: {
                             ...config.styles,
-                            height: 42, // Sets the style.height option to a value from 25 to 55.
+                            height: 44, // Sets the style.height option to a value from 25 to 55.
                             disableMaxWidth: false, // The button has a default maximum width of 750px
                             tagline: false // Set the style.layout to horizontal for taglines.
                         },
