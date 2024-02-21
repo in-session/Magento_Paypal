@@ -134,7 +134,7 @@ $uniqueId = '_' . uniqid();
                         }).render(this.$refs.ppMessage);
 
                     } catch (error) {
-                        console.error("Fehler beim Laden von PayPal SDK: ", error);
+                        console.error("PayPal SDK could not be loaded: ", error);
                     }
                 },
                     
