@@ -157,7 +157,7 @@ $uniqueId   = '_' . uniqid();
                                 } else {
                                     return window.dispatchMessages && window.dispatchMessages([{
                                         type: 'error',
-                                        text: response.statusText || 'An error occurred during the update process'
+                                        text: response.statusText || '<?= $escaper->escapeJs(__('An error occurred during the update process')) ?>'
                                     }]);
                                 }
                             })
